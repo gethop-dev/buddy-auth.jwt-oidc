@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/magnetcoop/buddy-auth.jwt-oidc.svg?branch=master)](https://travis-ci.org/magnetcoop/buddy-auth.jwt-oidc)
 # Duct buddy-auth.jwt-oidc
 
 A [Duct](https://github.com/duct-framework/duct) library that provides
@@ -10,6 +11,10 @@ See [OpenID Connect Core 1.0
 Terminology](https://openid.net/specs/openid-connect-core-1_0.html#Terminology)
 for additional details on the meaning of the OpenID Connect terms used
 below.
+
+## Installation
+
+[![Clojars Project](https://clojars.org/magnet/buddy-auth.jwt-oidc/latest-version.svg)](https://clojars.org/magnet/buddy-auth.jwt-oidc)
 
 ### Caching
 
