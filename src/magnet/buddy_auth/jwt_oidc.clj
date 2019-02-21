@@ -69,9 +69,8 @@
   [max-cached-tokens]
   (atom
    (-> {}
-       ;; FIXME: Composition doesn't work with `ttlcache` library???
-       #_(cache/lru-cache-factory :threshold max-cached-tokens)
-       (ttlcache/per-item-ttl-cache-factory :ttl-getter (fn [k v] (:ttl v))))))
+       (ttlcache/per-item-ttl-cache-factory :ttl-getter (fn [k v] (:ttl v)))
+       (cache/lru-cache-factory :threshold max-cached-tokens))))
 
 (s/def ::create-token-cache-args (s/cat :max-cached-tokens int?))
 (s/def ::token-cache #(s/valid? ::core-cache @%))

@@ -112,6 +112,10 @@
   "One day, in seconds"
   (* 24 60 60))
 
+(def max-cached-tokens
+  "Maximum number of validated tokens to cache"
+  3)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Auxiliary functions & macros
 
@@ -306,7 +310,7 @@
                                :alg :rs256
                                :exp exp}
         pubkey-cache (jwt-oidc/create-pubkey-cache jwt-oidc/one-day)
-        token-cache (jwt-oidc/create-token-cache 10)
+        token-cache (jwt-oidc/create-token-cache max-cached-tokens)
         config {:pubkey-cache pubkey-cache
                 :token-cache token-cache
                 :jwks-uri jwks-uri
@@ -416,6 +420,60 @@
                     cached-after-10000-2
                     (= nil result-after-10000-1)
                     (= nil result-after-10000-2))))))
+    (swap! pubkey-cache empty)
+    (swap! token-cache empty)
+    (testing "Check that we don't keep more than configured tokens in validation cache"
+      (with-redefs [jwt-oidc/get-url (fn [url]
+                                       (json/write-str {:keys jwk-keys}))]
+        (let [token-ttls (mapv #(* 2 %) (range (inc max-cached-tokens) 0 -1))
+              now (now-in-secs)
+              token-exps (mapv #(+ now %) token-ttls)
+              tokens (mapv #(create-token (assoc default-token-details :exp %)) token-exps)
+
+              ;; Initial validation
+              count-before-initial (count @token-cache)
+              _ (mapv #(jwt-oidc/validate-token config %) tokens)
+              tokens-initial (mapv #(get-in @token-cache [% :sub]) tokens)
+              count-after-initial (count @token-cache)
+
+              ;; After wating 2500 ms
+              _ (Thread/sleep 2500)
+              count-before-2500 (count @token-cache)
+              _ (mapv #(jwt-oidc/validate-token config %) tokens)
+              tokens-2500 (mapv #(get-in @token-cache [% :sub]) tokens)
+              count-after-2500 (count @token-cache)
+
+              ;; After wating 5000 ms
+              _ (Thread/sleep 2000)
+              count-before-5000 (count @token-cache)
+              _ (mapv #(jwt-oidc/validate-token config %) tokens)
+              tokens-5000 (mapv #(get-in @token-cache [% :sub]) tokens)
+              count-after-5000 (count @token-cache)]
+          ;; Initial validation. No token should have expired, and the token with the
+          ;; largest TTL should have been expunged from the cache by the other tokens. And
+          ;; the cache should be empty before the validations and full (max-cached-tokens)
+          ;; after (from current validation).
+          (is (= 0 count-before-initial))
+          (is (= max-cached-tokens count-after-initial))
+          (is (= [nil sub sub sub] tokens-initial))
+
+          ;; After wating 2500 ms the token with the shortest TTL should have expired, and
+          ;; the token with the largest TTL should have been expunged from the cache by
+          ;; the other tokens (including the expired one). And the cache should be full
+          ;; (max-cached-tokens) both before (from the initial validation at the start)
+          ;; and after (from current validation).
+          (is (= max-cached-tokens count-before-2500))
+          (is (= max-cached-tokens count-after-2500))
+          (is (= [nil sub sub nil] tokens-2500))
+
+          ;; After wating 5000 ms all tokens except the two with the longest TTLs should
+          ;; have expired, and the token with the largest TTL should have been expunged
+          ;; from the cache by the other tokens (the expired ones). And the cache should
+          ;; be full (max-cached-tokens) both before (from the initial validation at the
+          ;; start) and after (from current validation).
+          (is (= max-cached-tokens count-before-5000))
+          (is (= max-cached-tokens count-after-5000))
+          (is (= [nil sub nil nil] tokens-5000)))))
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
     (testing "Fail to validate token, no signing keys available, result is not cached"
