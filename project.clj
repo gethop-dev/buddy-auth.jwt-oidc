@@ -31,4 +31,4 @@
                      [lein-cljfmt "0.6.2"]]}
    :repl {:repl-options {:host "0.0.0.0"
                          :port 4001}
-          :plugins [[cider/cider-nrepl "0.18.0"]]}})
+          :plugins [[cider/cider-nrepl "0.20.0"]]}})
