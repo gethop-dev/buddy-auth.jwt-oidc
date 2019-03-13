@@ -16,6 +16,11 @@ below.
 
 [![Clojars Project](https://clojars.org/magnet/buddy-auth.jwt-oidc/latest-version.svg)](https://clojars.org/magnet/buddy-auth.jwt-oidc)
 
+To install this library, add the following to your project `:dependencies`:
+
+    [magnet/buddy-auth.jwt-oidc "0.5.0"]
+    [duct/middleware.buddy "0.1.0"]
+
 ### Caching
 
 The library caches both the OpenID Provider signing keys and a
