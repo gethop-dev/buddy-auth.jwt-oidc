@@ -18,7 +18,7 @@ below.
 
 To install this library, add the following to your project `:dependencies`:
 
-    [magnet/buddy-auth.jwt-oidc "0.5.0"]
+    [magnet/buddy-auth.jwt-oidc "0.6.0"]
     [duct/middleware.buddy "0.1.0"]
 
 ### Caching
@@ -71,7 +71,7 @@ are mandatory and their values must not be `nil`:
   uses to validate signatures from the OpenID Provider. It must be a
   `string` or a `java.net.URL` value.
 
-Optionally you can use two more configuration keys:
+You can also use the following optional configuration keys:
 
 * `:pubkeys-expire-in` which is the time to live for the cached OpenID
   Provider signing keys. It has to be specified in an integral number
@@ -80,6 +80,10 @@ Optionally you can use two more configuration keys:
 * `:max-cached-tokens` which is the maximum amount of cached ID Token
   validation results. It has to be an integer value greater than
   zero. If not specified, the default value is 50.
+* `:logger` a value that implements the `duct.logger/Logger`
+  protocol. If not `nil`, the library will log any relevant issues
+  that may prevent tokens from being validated (e.g., inability to get
+  the JWKS URL, getting invalid keys in the JWKS document, etc.)
 
 Example (using all optional configuration keys):
 
@@ -89,7 +93,8 @@ Example (using all optional configuration keys):
            :aud #duct/env ["AUDIENCE" Str]}
   :jwks-uri #duct/env ["JWKS_URI" Str]
   :pubkeys-expire-in 86400
-  :max-cached-tokens 50}}
+  :max-cached-tokens 50
+  :logger #ig/ref :duct/logger}}
 ```
 
 Initializing the key returns an `authfn` function that can be used in
@@ -101,7 +106,8 @@ Example:
 {:magnet.buddy-auth/jwt-oidc
  {:claims {:iss #duct/env ["ISSUER_URL" Str]
            :aud #duct/env ["AUDIENCE" Str]}
-  :jwks-uri #duct/env ["JWKS_URI" Str]}
+  :jwks-uri #duct/env ["JWKS_URI" Str]
+  :logger #ig/ref :duct/logger}
 
  :duct.middleware.buddy/authentication
  {:backend    :token

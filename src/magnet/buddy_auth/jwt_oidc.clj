@@ -14,21 +14,44 @@
             [clojure.core.cache :as cache]
             [clojure.data.json :as json]
             [clojure.java.io :as io]
+            [diehard.core :as dh]
+            [duct.logger :refer [log]]
             [integrant.core :as ig]
             [org.httpkit.client :as http]
             [uk.me.rkd.ttlcache :as ttlcache]))
+
+(def ^:const timeout
+  "Timeout, in milli-seconds, for JWK keys retrieval through HTTP request"
+  250)
+
+(def ^:const max-retries
+  "Retry attempts for JKW keys retrieval"
+  5)
+
+(def ^:const initial-delay
+  "Initial delay for retries, specified in milliseconds."
+  250)
+
+(def ^:const max-delay
+  "Maximun delay for a connection retry, specified in milliseconds. We
+  are using truncated binary exponential backoff, with `max-delay` as
+  the ceiling for the retry delay."
+  1000)
+
+(def ^:const backoff-ms
+  [initial-delay max-delay 2.0])
 
 (def ^:const default-mct
   "Default value for the number of cached tokens"
   50)
 
-(def ^:const timeout
-  "Timeout, in milli-seconds, for JWK keys retrieval through HTTP request"
-  (* 1000 2))
-
 (def ^:const one-day
   "One day, expressed in seconds"
   (* 24 60 60))
+
+(def ^:const failed-validation-ttl
+  "TTL for failed token validations, expressed in milli-seconds"
+  (* 1000 60 60))
 
 (def ^:const symmetric-key-types
   "See https://tools.ietf.org/html/rfc7518#section-6.4 for details"
@@ -52,6 +75,7 @@
   ;; The caching library expects TTLs in milli-seconds.
   (atom (cache/ttl-cache-factory {} :ttl (* 1000 pubkeys-expire-in))))
 
+(s/def ::logger #(satisfies? duct.logger/Logger %))
 (s/def ::core-cache #(satisfies? clojure.core.cache/CacheProtocol %))
 (s/def ::create-pubkey-cache-args (s/cat :pubkeys-expire-in int?))
 (s/def ::pubkey-cache #(s/valid? ::core-cache @%))
@@ -79,22 +103,52 @@
   :args ::create-token-cache-args
   :ret  ::create-token-cache-ret)
 
-(def ^:const failed-validation-ttl
-  "TTL for failed token validations, expressed in milli-seconds"
-  (* 1000 60 60))
+(defn fallback [e logger url]
+  (let [details (condp instance? e
+                  ;; Socket layer related exceptions
+                  java.net.UnknownHostException
+                  {:severity :error, :reason :unknown-host}
+                  java.net.ConnectException
+                  {:severity :warn, :reason :connection-refused}
+
+                  ;; HTTP layer related exceptions
+                  org.httpkit.client.TimeoutException
+                  {:severity :warn, :reason :timeout}
+                  org.httpkit.client.AbortException
+                  {:severity :warn, :reason :transfer-aborted}
+
+                  :else
+                  {:severity :info, :reason :unknown-reason})]
+    (log logger (:severity details) ::cant-get-url {:url url :details (:reason details)})
+    nil))
+
+(defn- retry-policy [max-retries backoff-ms]
+  (dh/retry-policy-from-config
+   {:max-retries max-retries
+    :backoff-ms backoff-ms
+    :retry-on [org.httpkit.client.TimeoutException
+               org.httpkit.client.AbortException]}))
 
 (defn get-url
   "Retrieve given `url`. Uses timeout for the connection and follows redirects.
-  Returns `nil` if the connection cannot be stablished, the
-  content cannot be retrieved or the status response is not 2xx."
-  [url]
+  Logs to `logger` any relevant issues that may prevent the url from
+  being retrieved. Returns `nil` if the connection cannot be
+  stablished, the content cannot be retrieved or the status response
+  is not 2xx."
+  [url logger]
   {:pre [(s/valid? ::url url)]}
-  (let [{:keys [status body error]} @(http/get url {:timeout timeout :as :text})]
-    (when (and (not error) (<= 200 status 299))
-      body)))
+  (dh/with-retry {:policy (retry-policy max-retries backoff-ms)
+                  :retry-on Exception
+                  :fallback (fn [_ e] (fallback e logger url))}
+    (let [{:keys [status body error]} @(http/get url {:timeout timeout :as :text})]
+      (when error
+        (throw error))
+      (if (<= 200 status 299)
+        body
+        nil))))
 
 (s/def ::url #(or (string? %) (instance? java.net.URL %)))
-(s/def ::get-url-args (s/cat :url ::url))
+(s/def ::get-url-args (s/cat :url ::url :logger ::logger))
 (s/def ::get-url-ret (s/or :nil nil? :string string?))
 (s/fdef get-url
   :args ::get-url-args
@@ -102,22 +156,25 @@
 
 (defn get-jwks*
   "Get the public keys from the JSON Web Key Set at `jwks-uri`.
-  Returns a collection with the public keys extracted from the JWKS, or
-  `nil` if it can't retrieve them."
-  [jwks-uri]
+  Returns a collection with the public keys extracted from the JWKS,
+  or `nil` if it can't retrieve them. Logs to `logger` any relevant
+  issues that may prevent the key set from being retrieved."
+  [jwks-uri logger]
   {:pre [(or (string? jwks-uri) (instance? java.net.URL jwks-uri))]}
-  (try
-    (let [keys (:keys (json/read-str (get-url jwks-uri)
-                                     :eof-error? false
-                                     :key-fn clojure.core/keyword))
-          ;; We don't support symmetric key signatures (see ADR-001),
-          ;; so filter those key types out.
-          assymetric-keys (filter #(not (contains? symmetric-key-types (:kty %))) keys)]
-      (map keys/jwk->public-key assymetric-keys))
-    (catch Exception e
-      nil)))
+  (if-let [jwks (get-url jwks-uri logger)]
+    (try
+      (let [keys (:keys (json/read-str jwks
+                                       :eof-error? false
+                                       :key-fn clojure.core/keyword))
+            ;; We don't support symmetric key signatures (see ADR-001),
+            ;; so filter those key types out.
+            assymetric-keys (filter #(not (contains? symmetric-key-types (:kty %))) keys)]
+        (map keys/jwk->public-key assymetric-keys))
+      (catch Exception e
+        (log logger :error ::invalid-jwks-keys-from-uri {:jwks-uri jwks-uri})
+        nil))))
 
-(s/def ::get-jwks*-args (s/cat :jwks-uri ::url))
+(s/def ::get-jwks*-args (s/cat :jwks-uri ::url :logger ::logger))
 (s/def ::get-jwks*-ret (s/or :nil nil? :pubkeys coll?))
 (s/fdef get-jwks*
   :args ::get-jwks*-args
@@ -127,18 +184,18 @@
   "Get the public keys from the JWKS at `jwks-uri`, using `pubkey-cache` for caching results.
   Returns a collection with the public keys or `nil` if the JWKS content
   is not available, or doesn't contain valid public keys."
-  [pubkey-cache jwks-uri]
+  [pubkey-cache jwks-uri logger]
   (cache/lookup (swap! pubkey-cache
                        #(if (cache/has? % jwks-uri)
                           (cache/hit % jwks-uri)
-                          (if-let [pubkeys (get-jwks* jwks-uri)]
+                          (if-let [pubkeys (get-jwks* jwks-uri logger)]
                             (cache/miss % jwks-uri pubkeys)
                             ;; We didn't get the data to include in the cache, so
                             ;; return the original values (minus the evicted ones).
                             (cache/hit % jwks-uri))))
                 jwks-uri))
 
-(s/def ::get-jwks-args (s/cat :pubkey-cache ::pubkey-cache :jwks-uri ::url))
+(s/def ::get-jwks-args (s/cat :pubkey-cache ::pubkey-cache :jwks-uri ::url :logger ::logger))
 (s/def ::get-jwks-ret (s/or :nil nil? :pubkeys coll?))
 (s/fdef get-jwks
   :args ::get-jwks-args
@@ -239,7 +296,9 @@
 
 (defn validate-token
   "Validate OpenID Connect ID `token`, caching results to speed up recurrent validations.
-  Returns the `:sub` claim from the token, or `nil` if the token is invalid.
+  Returns the `:sub` claim from the token, or `nil` if the token is
+  invalid. Logs to `logger` any relevant issues that may prevent
+  tokens from begin validated.
   `config` is a map with at least the following keys:
 
   :pubkey-cache A `clojure.core.cache` compatible instance, to cache the public keys
@@ -250,19 +309,20 @@
          the following keys must exist:
              :iss Case-sensitive URL for the Issuer Identifier.
              :aud Audience(s) the ID Token is intended for."
-  [config token]
-  (if-let [pubkeys (get-jwks (:pubkey-cache config) (:jwks-uri config))]
+  [config token logger]
+  (if-let [pubkeys (get-jwks (:pubkey-cache config) (:jwks-uri config) logger)]
     (let [token-cache (swap! (:token-cache config)
                              #(if (cache/has? % token)
                                 (cache/hit % token)
                                 (cache/miss % token (->
                                                      (validate-token* token pubkeys (:claims config))
                                                      (set-ttl)))))]
-      (:sub (cache/lookup token-cache token)))))
+      (:sub (cache/lookup token-cache token)))
+    (log logger :error ::cant-get-jwks-from-uri {:jwks-uri (:jwks-uri config)})))
 
 (s/def ::jwks-uri ::url)
 (s/def ::config (s/keys :req-un [::pubkey-cache ::token-cache ::jwks-uri ::claims]))
-(s/def ::validate-token-args (s/cat :config ::config :token string?))
+(s/def ::validate-token-args (s/cat :config ::config :token string? :logger ::logger))
 (s/def ::validate-token-ret ::sub)
 (s/fdef validate-token
   :args ::validate-token-args
@@ -272,7 +332,8 @@
   ""
   [{:keys [claims jwks-uri
            pubkeys-expire-in
-           max-cached-tokens]
+           max-cached-tokens
+           logger]
     :or {pubkeys-expire-in one-day
          max-cached-tokens default-mct} :as options}]
   (let [pubkey-cache (create-pubkey-cache pubkeys-expire-in)
@@ -282,12 +343,12 @@
                 :pubkey-cache pubkey-cache
                 :token-cache token-cache}]
     (fn [req token]
-      (validate-token config token))))
+      (validate-token config token logger))))
 
 (s/def ::pubkeys-expire-in pos-int?)
 (s/def ::max-cached-tokens pos-int?)
 (s/def ::authfn-options (s/keys :req-un [::claims ::jwks-uri]
-                                :opt-un [::pubkeys-expire-in ::max-cached-tokens]))
+                                :opt-un [::pubkeys-expire-in ::max-cached-tokens ::logger]))
 (s/def ::authfn-args (s/cat :authfn-options ::authfn-options))
 (s/fdef authfn
   :args ::authfn-args)
