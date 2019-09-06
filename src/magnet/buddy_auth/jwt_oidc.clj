@@ -223,11 +223,24 @@
   ;; http://openid.net/specs/openid-connect-basic-1_0.html#IDTokenValidation
   (try
     (let [token-header (jws/decode-header token)
-          token-alg (:alg token-header)]
+          token-alg (:alg token-header)
+          claims (-> claims
+                     (dissoc :aud)
+                     (assoc :alg token-alg))]
+      ;; Only process asymmetric key signatures
       (when-not (contains? symmetric-signature-algs token-alg)
-        ;; Only process asymmetric key signatures
-        (let [verified-claims (jwt/unsign token pubkey (assoc claims :alg token-alg))]
-          (select-keys verified-claims [:sub :exp]))))
+        ;; aud can be a collection of audiences and we need to check if the token
+        ;; contains any of them. Beware that aud can be a simple string too so make
+        ;; we always use a collection.
+        (let [auds (if (coll? aud) aud [aud])
+              verified-claims (some (fn [aud]
+                                      (try
+                                        (jwt/unsign token pubkey (assoc claims :aud aud))
+                                        (catch Exception e
+                                          nil)))
+                                    auds)]
+          (when verified-claims
+            (select-keys verified-claims [:sub :exp])))))
     (catch Exception e
       ;; If the token is malformed, has been manipulated or doesn't fulfill all the
       ;; validation criteria, buddy functions throw an exception. In that case, we

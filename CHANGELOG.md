@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2019-09-06
+
+### Changed
+- 'aud' claim can now be either a single string value or a collection of them. The aud claim of the token is checked against all of them.
+
 ## [0.6.0] - 2019-06-18
 
 ### Changed
@@ -30,7 +35,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.6.0...HEAD
+[UNRELEASED]:  https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/releases/tag/v0.7.0
 [0.6.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/releases/tag/v0.6.0
 [0.5.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/releases/tag/v0.5.0
 [0.4.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/releases/tag/v0.4.0
