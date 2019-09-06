@@ -1,4 +1,4 @@
-(defproject magnet/buddy-auth.jwt-oidc "0.7.0"
+(defproject magnet/buddy-auth.jwt-oidc "0.8.0-SNAPSHOT"
   :description "Buddy-auth JWT token validator, for OpenID Connect ID tokens"
   :url "https://github.com/magnetcoop/buddy-auth.jwt-oidc"
   :license {:name "Mozilla Public Licence 2.0"
