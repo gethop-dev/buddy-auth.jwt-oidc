@@ -22,6 +22,11 @@
                                       :username :env/clojars_username
                                       :password :env/clojars_password
                                       :sign-releases false}]]
+  :test-paths ["test"]
+  :test-selectors {:default (fn [m] (not (or (:integration m) (:regression m))))
+                   :all (constantly true)
+                   :integration :integration
+                   :regression :regression}
   :profiles
   {:dev {:dependencies [[amazonica "0.3.136" :exclusions [com.amazonaws/aws-java-sdk
                                                           com.amazonaws/amazon-kinesis-client
