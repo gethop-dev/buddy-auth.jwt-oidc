@@ -33,11 +33,11 @@
    :repl {:repl-options {:host "0.0.0.0"
                          :port 4001}}
    :profiles/dev {}
-   :project/dev {:dependencies [[amazonica "0.3.136" :exclusions [com.amazonaws/aws-java-sdk
+   :project/dev {:dependencies [[amazonica "0.3.143" :exclusions [com.amazonaws/aws-java-sdk
                                                                   com.amazonaws/amazon-kinesis-client
                                                                   com.amazonaws/dynamodb-streams-kinesis-adapter]]
-                                [com.amazonaws/aws-java-sdk-cognitoidp "1.11.468"]
-                                [com.amazonaws/aws-java-sdk-core "1.11.468"]
-                                [com.amazonaws/aws-java-sdk-s3 "1.11.468"]]
+                                [com.amazonaws/aws-java-sdk-cognitoidp "1.11.586"]
+                                [com.amazonaws/aws-java-sdk-core "1.11.586"]
+                                [com.amazonaws/aws-java-sdk-s3 "1.11.586"]]
                  :plugins [[jonase/eastwood "0.3.4"]
                            [lein-cljfmt "0.6.2"]]}})
