@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+- Bumped Amazonica dependency version (devel profile only)
+- Removed CIDER dependency (devel profile only)
+- Bumped mininum Leiningen version to 2.9.0.
+- Reorganized dev profile definition to allow to override some settings via profiles.clj file inside project's directory.
 
 ## [0.7.0] - 2019-09-06
 
