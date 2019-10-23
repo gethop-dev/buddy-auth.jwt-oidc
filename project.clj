@@ -1,6 +1,7 @@
 (defproject magnet/buddy-auth.jwt-oidc "0.8.0-SNAPSHOT"
   :description "Buddy-auth JWT token validator, for OpenID Connect ID tokens"
   :url "https://github.com/magnetcoop/buddy-auth.jwt-oidc"
+  :min-lein-version "2.9.0"
   :license {:name "Mozilla Public Licence 2.0"
             :url "https://www.mozilla.org/en-US/MPL/2.0/"}
   :dependencies [[org.clojure/clojure "1.10.0"]
