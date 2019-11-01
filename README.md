@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.org/magnetcoop/buddy-auth.jwt-oidc.svg?branch=master)](https://travis-ci.org/magnetcoop/buddy-auth.jwt-oidc)
+[![Build Status](https://api.travis-ci.com/magnetcoop/buddy-auth.jwt-oidc.svg?branch=master)](https://travis-ci.com/magnetcoop/buddy-auth.jwt-oidc)
+[![Clojars Project](https://img.shields.io/clojars/v/magnet/buddy-auth.jwt-oidc.svg)](https://clojars.org/magnet/buddy-auth.jwt-oidc)
+
 # Duct buddy-auth.jwt-oidc
 
 A [Duct](https://github.com/duct-framework/duct) library that provides
