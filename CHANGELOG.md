@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed CIDER dependency (devel profile only)
 - Bumped mininum Leiningen version to 2.9.0.
 - Reorganized dev profile definition to allow to override some settings via profiles.clj file inside project's directory.
+- Made a couple of caching related unit test more thorough, to make sure we do the right thing.
 
 ## [0.7.0] - 2019-09-06
 

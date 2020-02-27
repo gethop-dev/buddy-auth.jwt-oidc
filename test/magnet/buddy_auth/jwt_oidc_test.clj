@@ -186,11 +186,29 @@
                    in-cache-final)))))
     (swap! pubkey-cache empty)
     (testing "Don't cache JKWS we can't retrieve"
-      (with-redefs [jwt-oidc/get-url (fn [url logger]
-                                       nil)]
-        (let [retrieved (jwt-oidc/get-jwks pubkey-cache jwks-uri logger)]
-          (is (and (nil? retrieved)
-                   (not (cache/has? @pubkey-cache jwks-uri)))))))))
+      (let [get-url-count (atom 0)]
+        (with-redefs [jwt-oidc/get-url (fn [url logger]
+                                         (swap! get-url-count inc)
+                                         (if (< @get-url-count 3)
+                                           nil
+                                           (json/write-str {:keys jwk-keys})))]
+          (let [retrieved-1 (jwt-oidc/get-jwks pubkey-cache jwks-uri logger)
+                cached-1 (cache/has? @pubkey-cache jwks-uri)
+                retrieved-2 (jwt-oidc/get-jwks pubkey-cache jwks-uri logger)
+                cached-2 (cache/has? @pubkey-cache jwks-uri)
+                retrieved-3 (jwt-oidc/get-jwks pubkey-cache jwks-uri logger)
+                cached-3 (cache/has? @pubkey-cache jwks-uri)
+                retrieved-4 (jwt-oidc/get-jwks pubkey-cache jwks-uri logger)
+                cached-4 (cache/has? @pubkey-cache jwks-uri)]
+            (is (and (nil? retrieved-1)
+                     (not cached-1)
+                     (nil? retrieved-2)
+                     (not cached-2)
+                     retrieved-3
+                     cached-3
+                     retrieved-4
+                     cached-4))
+            (is (= 3 @get-url-count))))))))
 
 (deftest test-validate-single-key
   (let [validate-pubkey rsa-pub-key
@@ -481,11 +499,30 @@
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
     (testing "Fail to validate token, no signing keys available, result is not cached"
-      (with-redefs [jwt-oidc/get-url (fn [url logger] nil)]
-        (let [token (create-token default-token-details)
-              result (jwt-oidc/validate-token config token logger)]
-          (is (and (= nil result)
-                   (not (cache/has? @token-cache token)))))))
+      (let [get-url-count (atom 0)]
+        (with-redefs [jwt-oidc/get-url (fn [url logger]
+                                         (swap! get-url-count inc)
+                                         (if (< @get-url-count 3)
+                                           nil
+                                           (json/write-str {:keys jwk-keys})))]
+          (let [token (create-token default-token-details)
+                result-1 (jwt-oidc/validate-token config token logger)
+                cached-1 (cache/has? @token-cache token)
+                result-2 (jwt-oidc/validate-token config token logger)
+                cached-2 (cache/has? @token-cache token)
+                result-3 (jwt-oidc/validate-token config token logger)
+                cached-3 (cache/has? @token-cache token)
+                result-4 (jwt-oidc/validate-token config token logger)
+                cached-4 (cache/has? @token-cache token)]
+            (is (and (nil? result-1)
+                     (not cached-1)
+                     (nil? result-2)
+                     (not cached-2)
+                     result-3
+                     cached-3
+                     result-4
+                     cached-4))
+            (is (= 3 @get-url-count))))))
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
     (testing "Fail to validate a token signed with another key, result is cached"
