@@ -22,7 +22,7 @@
 
 (def ^:const timeout
   "Timeout, in milli-seconds, for JWK keys retrieval through HTTP request"
-  250)
+  2500)
 
 (def ^:const max-retries
   "Retry attempts for JKW keys retrieval"
