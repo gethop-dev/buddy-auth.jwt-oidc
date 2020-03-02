@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Bumped mininum Leiningen version to 2.9.0.
 - Reorganized dev profile definition to allow to override some settings via profiles.clj file inside project's directory.
 - Made a couple of caching related unit test more thorough, to make sure we do the right thing.
+- Increased timeout to 500s with 3 max retries (from 250ms with 5 max retries)
 
 ## [0.7.0] - 2019-09-06
 
@@ -28,7 +29,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.5.0] - 2019-02-21
 
 ### Changed
-- Added composed cache to set token storage limit. This was previously disabled (even if it was documented as working in the README), as composition with `ttlcache` didn't seem to work. 
+- Added composed cache to set token storage limit. This was previously disabled (even if it was documented as working in the README), as composition with `ttlcache` didn't seem to work.
 - Bumped CIDER version dependency (devel profile only)
 
 ## [0.4.0] - 2019-01-20
