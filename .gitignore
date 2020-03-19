@@ -11,3 +11,4 @@ pom.xml.asc
 .hg/
 /.dir-locals.el
 /profiles.clj
+.eastwood
