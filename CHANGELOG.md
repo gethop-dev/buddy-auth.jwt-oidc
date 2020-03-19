@@ -45,9 +45,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.7.0...HEAD
-[0.7.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/releases/tag/v0.7.0
-[0.6.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/releases/tag/v0.6.0
-[0.5.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/releases/tag/v0.5.0
-[0.4.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/releases/tag/v0.4.0
+[UNRELEASED]:  https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.3...v0.8.2
+[0.8.2]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.2...v0.8.1
+[0.8.1]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.1...v0.8.0
+[0.8.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.0...v0.7.0
+[0.7.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.7.0...v0.6.0
+[0.6.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.6.0...v0.5.0
+[0.5.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.5.0...v0.4.0
+[0.4.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.4.0...v0.3.0
+[0.3.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/releases/tag/v0.3.0
 
