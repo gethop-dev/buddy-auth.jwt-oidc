@@ -78,16 +78,24 @@ You can also use the following optional configuration keys:
 * `:pubkeys-expire-in` which is the time to live for the cached OpenID
   Provider signing keys. It has to be specified in an integral number
   of seconds greater than zero. If not specified the default value is
-  one day.
+  86400 (one day).
 * `:max-cached-tokens` which is the maximum amount of cached ID Token
   validation results. It has to be an integer value greater than
   zero. If not specified, the default value is 50.
+* `:jwks-retrieval-timeout` which specifies the connection timeout (in
+  milli-seconds) for JWKS retrieval. It has to be an integer value
+  greater than zero. If not specified, the default value is 500
+  milli-seconds.
+* `:jwks-retrieval-retries` which specifies the number of additional
+  retries in case of connection failure for JWKS retrieval. It has to
+  be an integer value greater than zero. If not specified, the default
+  value is 3 retries.
 * `:logger` a value that implements the `duct.logger/Logger`
   protocol. If not `nil`, the library will log any relevant issues
   that may prevent tokens from being validated (e.g., inability to get
   the JWKS URL, getting invalid keys in the JWKS document, etc.)
 
-Example (using all optional configuration keys):
+Example (using all optional configuration keys with their default values):
 
 ```clojure
 {:magnet.buddy-auth/jwt-oidc
@@ -96,6 +104,8 @@ Example (using all optional configuration keys):
   :jwks-uri #duct/env ["JWKS_URI" Str]
   :pubkeys-expire-in 86400
   :max-cached-tokens 50
+  :jwks-retrieval-timeout 500
+  :jwks-retrieval-retries 3
   :logger #ig/ref :duct/logger}}
 ```
 

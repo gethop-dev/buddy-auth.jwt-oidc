@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [UNRELEASED]
+
+### Added
+- You can now provide two additional configuration keys for JWKS retrieval connection policy. `:jwks-retrieval-timeout` specifies the connection timeout (in milli-seconds) and `:jwks-retrieval-retries` specifies the number of additional retries in case of connection failure.
+
 ## [0.8.3] - 2020-03-02
 
 ### Changed
