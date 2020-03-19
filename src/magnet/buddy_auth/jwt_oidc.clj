@@ -117,7 +117,8 @@
                   org.httpkit.client.AbortException
                   {:severity :warn, :reason :transfer-aborted}
 
-                  :else
+                  ;; Any other kind of exception
+                  java.lang.Exception
                   {:severity :info, :reason :unknown-reason})]
     (log logger (:severity details) ::cant-get-url {:url url :details (:reason details)})
     nil))
