@@ -103,7 +103,7 @@
   :args ::create-token-cache-args
   :ret  ::create-token-cache-ret)
 
-(defn fallback [e logger url]
+(defn- fallback [e logger url]
   (let [details (condp instance? e
                   ;; Socket layer related exceptions
                   java.net.UnknownHostException
