@@ -383,7 +383,7 @@
          jwks-retrieval-timeout default-jwks-retrieval-timeout
          jwks-retrieval-retries default-jwks-retrieval-retries}
     :as options}]
-  {:pre [(s/valid? ::authfn-options authfn-options)]}
+  {:pre [(s/valid? ::authfn-options options)]}
   (let [pubkey-cache (create-pubkey-cache pubkeys-expire-in)
         token-cache (create-token-cache max-cached-tokens)
         config {:claims claims
