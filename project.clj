@@ -1,4 +1,4 @@
-(defproject magnet/buddy-auth.jwt-oidc "0.8.5"
+(defproject magnet/buddy-auth.jwt-oidc "0.8.6-SNAPSHOT"
   :description "Buddy-auth JWT token validator, for OpenID Connect ID tokens"
   :url "https://github.com/magnetcoop/buddy-auth.jwt-oidc"
   :min-lein-version "2.9.0"
