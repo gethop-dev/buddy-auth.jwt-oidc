@@ -36,7 +36,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added composed cache to set token storage limit. This was previously disabled (even if it was documented as working in the README), as composition with `ttlcache` didn't seem to work.
 - Bumped CIDER version dependency (devel profile only)
 
-## [0.4.0] - 2019-01-20
+## [0.4.0] - 2019-01-29
 
 ### Added
 - Updated Clojure version to 1.10.0
