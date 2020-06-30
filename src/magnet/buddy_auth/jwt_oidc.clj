@@ -61,8 +61,8 @@
   "See https://tools.ietf.org/html/rfc7518#section-3.1 and
   https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms
   for details. `jws/decode-header` returns the standard algorithm
-  names as lower-case keywords, so specify them here as such. "
-  #{:hs256 :hs384 :hs512})
+  names as lower-case keywords, so specify them here as such."
+  #{:none :hs256 :hs384 :hs512})
 
 (defn create-pubkey-cache
   "Create a cache for JWK public keys.
