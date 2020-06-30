@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+## [0.8.5] - 2020-03-19
+### Fixed
+- Emergency fix for last minute non-tested change that breaks the build.
+
+## [0.8.4] - 2020-03-19
 ### Changed
 - Upgraded dependencies
 
