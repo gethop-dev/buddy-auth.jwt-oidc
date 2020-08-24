@@ -18,9 +18,9 @@ below.
 
 [![Clojars Project](https://clojars.org/magnet/buddy-auth.jwt-oidc/latest-version.svg)](https://clojars.org/magnet/buddy-auth.jwt-oidc)
 
-To install this library, add the following to your project `:dependencies`:
+To use this library you also need to add the following dependency to
+your project (use the most recent version of it):
 
-    [magnet/buddy-auth.jwt-oidc "0.6.0"]
     [duct/middleware.buddy "0.1.0"]
 
 ### Caching
