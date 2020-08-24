@@ -9,7 +9,7 @@
                  [buddy/buddy-sign "3.1.0"]
                  [diehard "0.9.2"]
                  [duct/logger "0.3.0"]
-                 [http-kit "2.3.0"]
+                 [http-kit "2.4.0"]
                  [integrant "0.8.0"]
                  [org.clojure/core.cache "0.8.2"]
                  [org.clojure/data.json "1.0.0"]
