@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
+
+## [0.9.0] - 2020-08-24
+
 ### Changed
 - Upgraded http-kit dependency to 2.4.0. This fixes issue #1.
 
@@ -67,7 +70,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.6...HEAD
+[UNRELEASED]:  https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.9.0...v0.8.6
 [0.8.6]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.6...v0.8.5
 [0.8.5]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.5...v0.8.4
 [0.8.4]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.4...v0.8.3
