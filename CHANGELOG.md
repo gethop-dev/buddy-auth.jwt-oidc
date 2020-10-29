@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+## [0.10.0] - 2020-10-29
+
 ### Changed
 - **[BREAKING CHANGE]** Upgraded http-kit dependency to 2.5.0. This change bumps the minimum JVM version from 1.6 to 1.7!
 
