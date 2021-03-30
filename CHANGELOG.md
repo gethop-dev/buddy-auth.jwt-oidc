@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
+
+## [0.10.1] - 2021-03-30
+
 ### Added
 - Lots of additional debugging information to be able to diagnose corner cases.
 
@@ -77,7 +80,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.9.0...HEAD
+[UNRELEASED]:  https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.10.1...v0.10.0
+[0.10.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.10.0...v0.9.0
 [0.9.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.9.0...v0.8.6
 [0.8.6]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.6...v0.8.5
 [0.8.5]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.8.5...v0.8.4
