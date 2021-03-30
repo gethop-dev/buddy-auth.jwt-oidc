@@ -149,7 +149,9 @@
         (throw error))
       (if (<= 200 status 299)
         body
-        nil))))
+        (do
+          (log logger :info ::get-url-invalid-status {:url url :details {:status status}})
+          nil)))))
 
 (s/def ::url #(or (string? %) (instance? java.net.URL %)))
 (s/def ::timeout pos-int?)
@@ -175,15 +177,20 @@
               (s/valid? ::connection-policy connection-policy))]}
   (if-let [jwks (get-url jwks-uri logger connection-policy)]
     (try
-      (let [keys (:keys (json/read-str jwks
-                                       :eof-error? false
-                                       :key-fn clojure.core/keyword))
+      (let [ks (:keys (json/read-str jwks
+                                     :eof-error? false
+                                     :key-fn clojure.core/keyword))
             ;; We don't support symmetric key signatures (see ADR-001),
             ;; so filter those key types out.
-            assymetric-keys (filter #(not (contains? symmetric-key-types (:kty %))) keys)]
-        (map keys/jwk->public-key assymetric-keys))
+            asymmetric-keys (->> ks
+                                 (filter #(not (contains? symmetric-key-types (:kty %))))
+                                 (map keys/jwk->public-key))]
+        (log logger :info ::downloaded-asymmetric-keys-successfully {:jwks-uri jwks-uri
+                                                                     :asymmetric-keys asymmetric-keys})
+        asymmetric-keys)
       (catch Exception e
-        (log logger :error ::invalid-jwks-keys-from-uri {:jwks-uri jwks-uri})
+        (log logger :error ::invalid-jwks-keys-from-uri {:jwks-uri jwks-uri
+                                                         :exception-message (.getMessage e)})
         nil))))
 
 (s/def ::get-jwks*-args (s/cat :jwks-uri ::url :logger ::logger :connection-policy ::connection-policy))
@@ -210,7 +217,10 @@
                             (cache/miss % jwks-uri pubkeys)
                             ;; We didn't get the data to include in the cache, so
                             ;; return the original values (minus the evicted ones).
-                            (cache/hit % jwks-uri))))
+                            (do
+                              (log logger :info ::using-original-values {:jwks-uri jwks-uri
+                                                                         :asymmetric-keys (cache/hit % jwks-uri)})
+                              (cache/hit % jwks-uri)))))
                 jwks-uri))
 
 (s/def ::get-jwks-args (s/cat :pubkey-cache ::pubkey-cache :jwks-uri ::url :logger ::logger
@@ -236,10 +246,11 @@
          as measured in UTC.
 
     If the token is not valid, it returns `nil`."
-  [token pubkey {:keys [iss aud] :as claims}]
+  [token pubkey {:keys [iss aud] :as claims} logger]
   {:pre [(and (s/valid? string? token)
               (s/valid? ::pubkey pubkey)
-              (s/valid? ::claims claims))]}
+              (s/valid? ::claims claims)
+              (s/valid? ::logger logger))]}
   ;; Verify the tokens, following the OpenId Connect ID token validation instructions
   ;; http://openid.net/specs/openid-connect-basic-1_0.html#IDTokenValidation
   (try
@@ -249,7 +260,7 @@
                      (dissoc :aud)
                      (assoc :alg token-alg))]
       ;; Only process asymmetric key signatures
-      (when-not (contains? symmetric-signature-algs token-alg)
+      (if-not (contains? symmetric-signature-algs token-alg)
         ;; aud can be a collection of audiences and we need to check if the token
         ;; contains any of them. Beware that aud can be a simple string too so make
         ;; we always use a collection.
@@ -257,22 +268,36 @@
               verified-claims (some (fn [aud]
                                       (try
                                         (jwt/unsign token pubkey (assoc claims :aud aud))
+                                        (catch clojure.lang.ExceptionInfo e
+                                          (let [{:keys [type cause]} (ex-data e)]
+                                            (when-not (and (= type :validation)
+                                                           (= cause :aud))
+                                              (log logger :error ::unable-to-verify-token))))
                                         (catch Exception e
+                                          (log logger :error ::exception-verifying-token
+                                               {:exception-message (.getMessage e)})
                                           nil)))
                                     auds)]
-          (when verified-claims
-            (select-keys verified-claims [:sub :exp])))))
+          (if verified-claims
+            (select-keys verified-claims [:sub :exp])
+            (do
+              (log logger :info ::verified-claims-empty)
+              nil)))
+        (do
+          (log logger :info ::contains-symmetric-signature-algs)
+          nil)))
     (catch Exception e
       ;; If the token is malformed, has been manipulated or doesn't fulfill all the
       ;; validation criteria, buddy functions throw an exception. In that case, we
       ;; consider that the validation has failed.
+      (log logger :error ::validate-single-key {:exception-message (.getMessage e)})
       nil)))
 
 (s/def ::pubkey (complement nil?))
 (s/def ::iss ::url)
 (s/def ::aud (s/or :string string? :coll coll?))
 (s/def ::claims (s/keys :req-un [::iss ::aud]))
-(s/def ::validate-single-key-args (s/cat :token string? :pubkey ::pubkey :claims ::claims))
+(s/def ::validate-single-key-args (s/cat :token string? :pubkey ::pubkey :claims ::claims :logger ::logger))
 (s/def ::sub (s/nilable string?))
 (s/def ::exp (s/nilable number?))
 (s/def ::token-details (s/keys :req-un [::sub ::exp]))
@@ -297,16 +322,17 @@
     :exp The expiry time (exp) extracted from the token if valid, as a number
          representing the number of seconds from 1970-01-01T00:00:00Z as
          measured in UTC. Otherwise, `nil`."
-  [token pubkeys {:keys [iss aud] :as claims}]
+  [token pubkeys {:keys [iss aud] :as claims} logger]
   {:pre [(and (s/valid? string? token)
               (s/valid? ::pubkeys pubkeys)
-              (s/valid? ::claims claims))]}
-  (let [validated (some #(validate-single-key token % claims) pubkeys)]
+              (s/valid? ::claims claims)
+              (s/valid? ::logger logger))]}
+  (let [validated (some #(validate-single-key token % claims logger) pubkeys)]
     (or validated
         {:sub nil :exp nil})))
 
 (s/def ::pubkeys (s/coll-of ::pubkey))
-(s/def ::validate-token*-args (s/cat :token string? :pubkeys ::pubkeys :claims ::claims))
+(s/def ::validate-token*-args (s/cat :token string? :pubkeys ::pubkeys :claims ::claims :logger ::logger))
 (s/def ::validate-token*-ret ::token-details)
 (s/fdef validate-token*
   :args ::validate-token*-args
@@ -357,7 +383,7 @@
                              #(if (cache/has? % token)
                                 (cache/hit % token)
                                 (cache/miss % token (->
-                                                     (validate-token* token pubkeys (:claims config))
+                                                     (validate-token* token pubkeys (:claims config) logger)
                                                      (set-ttl)))))]
       (:sub (cache/lookup token-cache token)))
     (log logger :error ::cant-get-jwks-from-uri {:jwks-uri (:jwks-uri config)})))
