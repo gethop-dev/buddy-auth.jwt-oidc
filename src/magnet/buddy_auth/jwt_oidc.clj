@@ -272,14 +272,28 @@
                                           (let [{:keys [type cause]} (ex-data e)]
                                             (when-not (and (= type :validation)
                                                            (= cause :aud))
-                                              (log logger :error ::unable-to-verify-token))))
+                                              (log logger :error ::unable-to-verify-token)
+                                              nil)))
                                         (catch Exception e
                                           (log logger :error ::exception-verifying-token
                                                {:exception-message (.getMessage e)})
                                           nil)))
                                     auds)]
-          (if verified-claims
-            (select-keys verified-claims [:sub :exp])
+          (if (seq verified-claims)
+            (let [{:keys [sub exp]} verified-claims]
+              (cond
+                (not sub)
+                (do
+                  (log logger :info ::sub-claim-not-present)
+                  nil)
+
+                (not exp)
+                (do
+                  (log logger :info ::exp-claim-not-present)
+                  nil)
+
+                :else
+                {:sub sub, :exp exp}))
             (do
               (log logger :info ::verified-claims-empty)
               nil)))
@@ -329,7 +343,9 @@
               (s/valid? ::logger logger))]}
   (let [validated (some #(validate-single-key token % claims logger) pubkeys)]
     (or validated
-        {:sub nil :exp nil})))
+        (do
+          (log logger :info ::invalid-token {:token token})
+          {:sub nil :exp nil}))))
 
 (s/def ::pubkeys (s/coll-of ::pubkey))
 (s/def ::validate-token*-args (s/cat :token string? :pubkeys ::pubkeys :claims ::claims :logger ::logger))

@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+### Added
+- More debugging information, for other corner cases.
+
 ## [0.10.1] - 2021-03-30
 
 ### Added
