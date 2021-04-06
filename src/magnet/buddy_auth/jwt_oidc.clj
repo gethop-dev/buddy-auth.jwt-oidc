@@ -14,7 +14,6 @@
             [clojure.core.cache :as cache]
             [clojure.core.cache.wrapped :as cw]
             [clojure.data.json :as json]
-            [clojure.java.io :as io]
             [diehard.core :as dh]
             [duct.logger :refer [log]]
             [integrant.core :as ig]
