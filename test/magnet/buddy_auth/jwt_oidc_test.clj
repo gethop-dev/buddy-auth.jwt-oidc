@@ -5,7 +5,7 @@
 (ns magnet.buddy-auth.jwt-oidc-test
   (:require [amazonica.aws.cognitoidp :as idp]
             [amazonica.core]
-            [buddy.core.codecs.base64 :as base64]
+            [buddy.core.codecs :as codecs]
             [buddy.core.keys :as keys]
             [buddy.core.nonce :as nonce]
             [buddy.sign.jwt :as jwt]
@@ -61,7 +61,7 @@
 (def jwk-hs256
   ;; See https://tools.ietf.org/html/rfc7518#section-6.4 for details
   (->
-   {:kty "oct" :k (apply str (map char (base64/encode hs256-key true)))}
+   {:kty "oct" :k (apply str (map char (codecs/bytes->b64u hs256-key)))}
    (assoc :kid jwk-hs256-kid :alg "HS256" :use "sig")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
