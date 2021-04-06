@@ -5,13 +5,13 @@
   :license {:name "Mozilla Public Licence 2.0"
             :url "https://www.mozilla.org/en-US/MPL/2.0/"}
   :dependencies [[org.clojure/clojure "1.10.0"]
-                 [buddy/buddy-core "1.6.0"]
-                 [buddy/buddy-sign "3.1.0"]
-                 [diehard "0.9.2"]
+                 [buddy/buddy-core "1.9.0"]
+                 [buddy/buddy-sign "3.3.0"]
+                 [diehard "0.10.3"]
                  [duct/logger "0.3.0"]
-                 [http-kit "2.5.0"]
+                 [http-kit "2.5.3"]
                  [integrant "0.8.0"]
-                 [org.clojure/core.cache "0.8.2"]
+                 [org.clojure/core.cache "1.0.207"]
                  [org.clojure/data.json "1.0.0"]
                  [uk.me.rkd.ttlcache "0.1.0"]]
   :deploy-repositories [["snapshots" {:url "https://clojars.org/repo"
