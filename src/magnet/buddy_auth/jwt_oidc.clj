@@ -93,7 +93,7 @@
   [max-cached-tokens]
   (atom
    (-> {}
-       (ttlcache/per-item-ttl-cache-factory :ttl-getter (fn [k v] (:ttl v)))
+       (ttlcache/per-item-ttl-cache-factory :ttl-getter (fn [_ v] (:ttl v)))
        (cache/lru-cache-factory :threshold max-cached-tokens))))
 
 (s/def ::create-token-cache-args (s/cat :max-cached-tokens int?))
@@ -175,7 +175,7 @@
   {:pre [(and (s/valid? ::url jwks-uri)
               (s/valid? ::logger logger)
               (s/valid? ::connection-policy connection-policy))]}
-  (if-let [jwks (get-url jwks-uri logger connection-policy)]
+  (when-let [jwks (get-url jwks-uri logger connection-policy)]
     (try
       (let [ks (:keys (json/read-str jwks
                                      :eof-error? false
@@ -246,7 +246,7 @@
          as measured in UTC.
 
     If the token is not valid, it returns `nil`."
-  [token pubkey {:keys [iss aud] :as claims} logger]
+  [token pubkey claims logger]
   {:pre [(and (s/valid? string? token)
               (s/valid? ::pubkey pubkey)
               (s/valid? ::claims claims)
@@ -256,6 +256,7 @@
   (try
     (let [token-header (jws/decode-header token)
           token-alg (:alg token-header)
+          aud (:aud claims)
           claims (-> claims
                      (dissoc :aud)
                      (assoc :alg token-alg))]
@@ -336,7 +337,7 @@
     :exp The expiry time (exp) extracted from the token if valid, as a number
          representing the number of seconds from 1970-01-01T00:00:00Z as
          measured in UTC. Otherwise, `nil`."
-  [token pubkeys {:keys [iss aud] :as claims} logger]
+  [token pubkeys claims logger]
   {:pre [(and (s/valid? string? token)
               (s/valid? ::pubkeys pubkeys)
               (s/valid? ::claims claims)
@@ -434,7 +435,7 @@
                 :token-cache token-cache}
         connection-policy {:timeout jwks-retrieval-timeout
                            :retries jwks-retrieval-retries}]
-    (fn [req token]
+    (fn [_req token]
       (validate-token config token logger connection-policy))))
 
 (s/def ::pubkeys-expire-in pos-int?)
