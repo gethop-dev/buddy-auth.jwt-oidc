@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+## [0.10.3] - 2021-05-07
+
 ### Changed
 - Use our own forked versin of per item TTL cache. It fixes a nasty bug that was making evicted entries look like they were alive in the cache, but returning a nil value when looked up.
 
@@ -88,7 +90,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.10.2...HEAD
+[UNRELEASED]:  https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.10.3...HEAD
+[0.10.3]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.10.3...v0.10.2
 [0.10.2]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.10.2...v0.10.1
 [0.10.1]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.10.1...v0.10.0
 [0.10.0]: https://github.com/magnetcoop/buddy-auth.jwt-oidc/compare/v0.10.0...v0.9.0
