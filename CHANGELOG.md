@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+### Changed
+- Use our own forked versin of per item TTL cache. It fixes a nasty bug that was making evicted entries look like they were alive in the cache, but returning a nil value when looked up.
+
 ## [0.10.2] - 2021-03-31
 
 ### Added

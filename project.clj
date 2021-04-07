@@ -13,7 +13,7 @@
                  [integrant "0.8.0"]
                  [org.clojure/core.cache "1.0.207"]
                  [org.clojure/data.json "1.0.0"]
-                 [uk.me.rkd.ttlcache "0.1.0"]]
+                 [coop.magnet/ttlcache "0.2.0"]]
   :deploy-repositories [["snapshots" {:url "https://clojars.org/repo"
                                       :username :env/clojars_username
                                       :password :env/clojars_password

@@ -18,7 +18,7 @@
             [duct.logger :refer [log]]
             [integrant.core :as ig]
             [org.httpkit.client :as http]
-            [uk.me.rkd.ttlcache :as ttlcache]))
+            [coop.magnet.ttlcache :as ttlcache]))
 
 (def ^:const default-jwks-retrieval-timeout
   "Default timeout for JWK keys retrieval through HTTP request, specified in milli-seconds"
