@@ -2,7 +2,7 @@
 ;; License, v. 2.0. If a copy of the MPL was not distributed with this
 ;; file, You can obtain one at http://mozilla.org/MPL/2.0/
 
-(ns magnet.buddy-auth.jwt-oidc
+(ns dev.gethop.buddy-auth.jwt-oidc
   "See https://openid.net/specs/openid-connect-core-1_0.html,
   https://openid.net/specs/openid-connect-basic-1_0.html and
   https://openid.net/specs/openid-connect-discovery-1_0.html for
@@ -451,5 +451,5 @@
 (s/fdef authfn
   :args ::authfn-args)
 
-(defmethod ig/init-key :magnet.buddy-auth/jwt-oidc [_ options]
+(defmethod ig/init-key :dev.gethop.buddy-auth/jwt-oidc [_ options]
   (authfn options))

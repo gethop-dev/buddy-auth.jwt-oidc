@@ -2,7 +2,7 @@
 ;; License, v. 2.0. If a copy of the MPL was not distributed with this
 ;; file, You can obtain one at http://mozilla.org/MPL/2.0/
 
-(ns magnet.buddy-auth.jwt-oidc-test
+(ns dev.gethop.buddy-auth.jwt-oidc-test
   (:require [amazonica.aws.cognitoidp :as idp]
             [amazonica.core]
             [buddy.core.codecs :as codecs]
@@ -14,13 +14,13 @@
             [clojure.java.io :as io]
             [clojure.spec.test.alpha :as stest]
             [clojure.test :refer :all]
-            [magnet.buddy-auth.jwt-oidc :as jwt-oidc])
+            [dev.gethop.buddy-auth.jwt-oidc :as jwt-oidc])
   (:import [clojure.lang ExceptionInfo]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Fixtures
 (defn enable-instrumentation [f]
-  (-> (stest/enumerate-namespace 'magnet.buddy-auth.jwt-oidc) stest/instrument)
+  (-> (stest/enumerate-namespace 'dev.gethop.buddy-auth.jwt-oidc) stest/instrument)
   (f))
 
 (use-fixtures :once enable-instrumentation)

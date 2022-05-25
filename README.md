@@ -50,7 +50,7 @@ library refuses to validate symmetric signatures.
 ## Usage
 
 The library currently supports a single Integrant key:
-`:magnet.buddy-auth/jwt-oidc`. To initialize it, the following keys
+`:dev.gethop.buddy-auth/jwt-oidc`. To initialize it, the following keys
 are mandatory and their values must not be `nil`:
 
 * `:claims` key which is a map with the set of OpenID Connect claims
@@ -98,7 +98,7 @@ You can also use the following optional configuration keys:
 Example (using all optional configuration keys with their default values):
 
 ```clojure
-{:magnet.buddy-auth/jwt-oidc
+{:dev.gethop.buddy-auth/jwt-oidc
  {:claims {:iss #duct/env ["ISSUER_URL" Str]
            :aud #duct/env ["AUDIENCE" Str]}
   :jwks-uri #duct/env ["JWKS_URI" Str]
@@ -115,7 +115,7 @@ conjunction with
 Example:
 
 ```clojure
-{:magnet.buddy-auth/jwt-oidc
+{:dev.gethop.buddy-auth/jwt-oidc
  {:claims {:iss #duct/env ["ISSUER_URL" Str]
            :aud #duct/env ["AUDIENCE" Str]}
   :jwks-uri #duct/env ["JWKS_URI" Str]
@@ -124,7 +124,7 @@ Example:
  :duct.middleware.buddy/authentication
  {:backend    :token
   :token-name "Bearer"
-  :authfn     #ig/ref :magnet.buddy-auth/jwt-oidc}}
+  :authfn     #ig/ref :dev.gethop.buddy-auth/jwt-oidc}}
 ```
 
 The `authfn` function does all the [OpenID Connect ID Token validation
@@ -141,7 +141,7 @@ throws `AssertionError` if any of the following conditions occur:
 
 The library includes self-contained units tests, and an integration
 test that depends on AWS Cognito User Pools. That test is named
-`magnet.buddy-auth.jwt-oidc-test.test-cognito-token-validation` and
+`dev.gethop.buddy-auth.jwt-oidc-test.test-cognito-token-validation` and
 has the `^:integration` metadata keyword associated to it, so you can
 exclude it from your unit tests runs.
 
