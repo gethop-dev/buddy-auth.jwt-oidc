@@ -1,7 +1,7 @@
 (defproject dev.gethop/buddy-auth.jwt-oidc "0.10.4-SNAPSHOT"
   :description "Buddy-auth JWT token validator, for OpenID Connect ID tokens"
   :url "https://github.com/gethop-dev/buddy-auth.jwt-oidc"
-  :min-lein-version "2.9.0"
+  :min-lein-version "2.9.8"
   :license {:name "Mozilla Public Licence 2.0"
             :url "https://www.mozilla.org/en-US/MPL/2.0/"}
   :dependencies [[org.clojure/clojure "1.10.0"]
@@ -38,5 +38,5 @@
                                 [com.amazonaws/aws-java-sdk-cognitoidp "1.11.586"]
                                 [com.amazonaws/aws-java-sdk-core "1.11.586"]
                                 [com.amazonaws/aws-java-sdk-s3 "1.11.586"]]
-                 :plugins [[jonase/eastwood "0.3.11"]
-                           [lein-cljfmt "0.6.7"]]}})
+                 :plugins [[jonase/eastwood "1.2.3"]
+                           [lein-cljfmt "0.8.0"]]}})
