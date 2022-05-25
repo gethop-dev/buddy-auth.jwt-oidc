@@ -10,15 +10,15 @@
   (:require [buddy.core.keys :as keys]
             [buddy.sign.jws :as jws]
             [buddy.sign.jwt :as jwt]
-            [clojure.spec.alpha :as s]
             [clojure.core.cache :as cache]
             [clojure.core.cache.wrapped :as cw]
             [clojure.data.json :as json]
+            [clojure.spec.alpha :as s]
+            [coop.magnet.ttlcache :as ttlcache]
             [diehard.core :as dh]
             [duct.logger :refer [log]]
             [integrant.core :as ig]
-            [org.httpkit.client :as http]
-            [coop.magnet.ttlcache :as ttlcache]))
+            [org.httpkit.client :as http]))
 
 (def ^:const default-jwks-retrieval-timeout
   "Default timeout for JWK keys retrieval through HTTP request, specified in milli-seconds"
