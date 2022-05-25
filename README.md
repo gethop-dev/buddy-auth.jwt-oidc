@@ -1,5 +1,5 @@
-[![Build Status](https://api.travis-ci.com/magnetcoop/buddy-auth.jwt-oidc.svg?branch=master)](https://travis-ci.com/magnetcoop/buddy-auth.jwt-oidc)
-[![Clojars Project](https://img.shields.io/clojars/v/magnet/buddy-auth.jwt-oidc.svg)](https://clojars.org/magnet/buddy-auth.jwt-oidc)
+[![ci-cd](https://github.com/gethop-dev/buddy-auth.jwt-oidc/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/gethop-dev/buddy-auth.jwt-oidc/actions/workflows/ci-cd.yml)
+[![Clojars Project](https://img.shields.io/clojars/v/dev.gethop/buddy-auth.jwt-oidc.svg)](https://clojars.org/dev.gethop/buddy-auth.jwt-oidc)
 
 # Duct buddy-auth.jwt-oidc
 
@@ -16,7 +16,7 @@ below.
 
 ## Installation
 
-[![Clojars Project](https://clojars.org/magnet/buddy-auth.jwt-oidc/latest-version.svg)](https://clojars.org/magnet/buddy-auth.jwt-oidc)
+[![Clojars Project](https://clojars.org/dev.gethop/buddy-auth.jwt-oidc/latest-version.svg)](https://clojars.org/dev.gethop/buddy-auth.jwt-oidc)
 
 To use this library you also need to add the following dependency to
 your project (use the most recent version of it):
@@ -180,7 +180,7 @@ credentials environment variables):
 
 ## License
 
-Copyright (c) 2018, 2019 Magnet S Coop.
+Copyright (c) 2022 HOP Technologies
 
 This Source Code Form is subject to the terms of the Mozilla Public License,
 v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain
