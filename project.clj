@@ -15,12 +15,12 @@
                  [org.clojure/data.json "1.0.0"]
                  [coop.magnet/ttlcache "0.2.0"]]
   :deploy-repositories [["snapshots" {:url "https://clojars.org/repo"
-                                      :username :env/clojars_username
-                                      :password :env/clojars_password
+                                      :username :env/CLOJARS_USERNAME
+                                      :password :env/CLOJARS_PASSWORD
                                       :sign-releases false}]
                         ["releases"  {:url "https://clojars.org/repo"
-                                      :username :env/clojars_username
-                                      :password :env/clojars_password
+                                      :username :env/CLOJARS_USERNAME
+                                      :password :env/CLOJARS_PASSWORD
                                       :sign-releases false}]]
   :test-paths ["test"]
   :test-selectors {:default (fn [m] (not (or (:integration m) (:regression m))))
