@@ -12,6 +12,7 @@
             [clojure.core.cache :as cache]
             [clojure.data.json :as json]
             [clojure.java.io :as io]
+            [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha :as stest]
             [clojure.test :refer :all]
             [dev.gethop.buddy-auth.jwt-oidc :as jwt-oidc])
@@ -130,13 +131,17 @@
   []
   (quot (System/currentTimeMillis) 1000))
 
+(s/def ::required-token-claims
+  (s/keys :req-un [::sub
+                   ::iss
+                   ::aud
+                   ::exp]))
+
 (defn create-token
-  [{:keys [sub iss aud exp] :as claims}
-   {:keys [sign-key kid alg] :as _sign-opts}]
-  (let [iat (now-in-secs)
-        exp exp]
-    (jwt/sign (merge claims
-                     {:sub sub :iss iss :aud aud :iat iat :exp exp})
+  [claims {:keys [sign-key kid alg] :as _sign-opts}]
+  {:pre [(s/valid? ::required-token-claims claims)]}
+  (let [iat (now-in-secs)]
+    (jwt/sign (assoc claims :iat iat)
               sign-key
               {:header {:kid kid} :alg alg})))
 
