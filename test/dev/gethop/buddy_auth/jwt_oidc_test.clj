@@ -131,10 +131,12 @@
   (quot (System/currentTimeMillis) 1000))
 
 (defn- create-token
-  [{:keys [sub iss aud sign-key kid alg exp]}]
+  [{:keys [sub iss aud exp] :as claims}
+   {:keys [sign-key kid alg] :as _sign-opts}]
   (let [iat (now-in-secs)
         exp exp]
-    (jwt/sign {:sub sub :iss iss :aud aud :iat iat :exp exp}
+    (jwt/sign (merge claims
+                     {:sub sub :iss iss :aud aud :iat iat :exp exp})
               sign-key
               {:header {:kid kid} :alg alg})))
 
@@ -219,55 +221,55 @@
 (deftest test-validate-single-key
   (let [validate-pubkey rsa-pub-key
         exp (+ (now-in-secs) default-token-ttl)
-        default-token-details {:sub sub
-                               :iss issuer-url
-                               :aud audience
-                               :sign-key rsa-priv-key
-                               :kid jwk-rsa-kid
-                               :alg :rs256
-                               :exp exp}
+        default-token-claims {:sub sub
+                              :iss issuer-url
+                              :aud audience
+                              :exp exp}
+        default-token-signing-opts {:sign-key rsa-priv-key
+                                    :kid jwk-rsa-kid
+                                    :alg :rs256}
         claims {:iss issuer-url :aud audience}]
     (testing "Successfully validate a token with a specific key"
-      (let [token (create-token default-token-details)
+      (let [token (create-token default-token-claims default-token-signing-opts)
             result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
         (is (= {:sub sub :exp exp} result))))
     (testing "Fail to validate an expired token"
       (let [exp (- (now-in-secs) 1)
-            token (create-token (assoc default-token-details :exp exp))
+            token (create-token (assoc default-token-claims :exp exp) default-token-signing-opts)
             result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
         (is (= nil result))))
     (testing "Fail to validate a token signed with another key"
-      (let [token (create-token (assoc default-token-details
-                                       :sign-key ecdsa-priv-key
-                                       :kid jwk-ecdsa-kid
-                                       :alg :es256))
+      (let [token (create-token default-token-claims (assoc default-token-signing-opts
+                                                            :sign-key ecdsa-priv-key
+                                                            :kid jwk-ecdsa-kid
+                                                            :alg :es256))
             result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
         (is (= nil result))))
     (testing "Fail to validate a token from another issuer"
-      (let [token (create-token (assoc default-token-details
-                                       :iss "https://example.invalid/"))
+      (let [token (create-token (assoc default-token-claims
+                                       :iss "https://example.invalid/") default-token-signing-opts)
             result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
         (is (= nil result))))
     (testing "Fail to validate a token for another audience"
-      (let [token (create-token (assoc default-token-details
-                                       :aud (str "another-" audience)))
+      (let [token (create-token (assoc default-token-claims
+                                       :aud (str "another-" audience)) default-token-signing-opts)
             result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
         (is (= nil result))))
     (testing "Fail to validate a token signed with a symmetric key"
       (let [validate-pubkey hs256-key
-            token (create-token (assoc default-token-details
-                                       :sign-key hs256-key
-                                       :kid jwk-hs256-kid
-                                       :alg :hs256))
+            token (create-token default-token-claims (assoc default-token-signing-opts
+                                                            :sign-key hs256-key
+                                                            :kid jwk-hs256-kid
+                                                            :alg :hs256))
             result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
         (is (= nil result))))
     (testing "Fail to validate a token, using invalid key values"
       (let [invalid-keys [1 "invalid"]
-            token (create-token default-token-details)
+            token (create-token default-token-claims default-token-signing-opts)
             result (mapv #(jwt-oidc/validate-single-key token % claims nil) invalid-keys)]
         (is (every? nil? result))))
     (testing "Fail to validate a token, not providing valid params"
-      (let [token (create-token default-token-details)
+      (let [token (create-token default-token-claims default-token-signing-opts)
             iss-nil (assoc claims :iss nil)
             aud-nil (assoc claims :aud nil)]
         (is (thrown? ExceptionInfo (jwt-oidc/validate-single-key token nil claims nil)))
@@ -278,63 +280,63 @@
 (deftest test-validate-token*
   (let [validate-pubkeys [rsa-pub-key ecdsa-pub-key]
         exp (+ (now-in-secs) default-token-ttl)
-        default-token-details {:sub sub
-                               :iss issuer-url
-                               :aud audience
-                               :sign-key rsa-priv-key
-                               :kid jwk-rsa-kid
-                               :alg :rs256
-                               :exp exp}
+        default-token-claims {:sub sub
+                              :iss issuer-url
+                              :aud audience
+                              :exp exp}
+        default-token-signing-opts {:sign-key rsa-priv-key
+                                    :kid jwk-rsa-kid
+                                    :alg :rs256}
         claims {:iss issuer-url :aud audience}]
     (testing "Successfully validate a token with some key from the Issuer public keys"
-      (let [token (create-token default-token-details)
+      (let [token (create-token default-token-claims default-token-signing-opts)
             result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
         (is (= {:sub sub :exp exp} result))))
     (testing "Fail to validate an expired token"
       (let [exp (- (now-in-secs) 1)
-            token (create-token (assoc default-token-details :exp exp))
+            token (create-token (assoc default-token-claims :exp exp) default-token-signing-opts)
             result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token signed with another key"
-      (let [token (create-token (assoc default-token-details
-                                       :sign-key hs256-key
-                                       :kid jwk-hs256-kid
-                                       :alg :hs256))
+      (let [token (create-token default-token-claims (assoc default-token-signing-opts
+                                                            :sign-key hs256-key
+                                                            :kid jwk-hs256-kid
+                                                            :alg :hs256))
             result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token from another issuer"
-      (let [token (create-token (assoc default-token-details
-                                       :iss "https://example.invalid/"))
+      (let [token (create-token (assoc default-token-claims
+                                       :iss "https://example.invalid/") default-token-signing-opts)
             result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token for another audience"
-      (let [token (create-token (assoc default-token-details
-                                       :aud (str "another-" audience)))
+      (let [token (create-token (assoc default-token-claims
+                                       :aud (str "another-" audience)) default-token-signing-opts)
             result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token signed with a symmetric key"
       (let [validate-pubkeys (conj validate-pubkeys hs256-key)
-            token (create-token (assoc default-token-details
-                                       :sign-key hs256-key
-                                       :kid jwk-hs256-kid
-                                       :alg :hs256))
+            token (create-token default-token-claims (assoc default-token-signing-opts
+                                                            :sign-key hs256-key
+                                                            :kid jwk-hs256-kid
+                                                            :alg :hs256))
             result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token, not providing valid params"
-      (let [token (create-token default-token-details)]
+      (let [token (create-token default-token-claims default-token-signing-opts)]
         (is (thrown? ExceptionInfo (jwt-oidc/validate-token* token nil claims nil)))
         (is (thrown? ExceptionInfo (jwt-oidc/validate-token* token -1 claims nil)))))))
 
 (deftest test-validate-token
   (let [jwk-keys [jwk-rsa jwk-ecdsa jwk-hs256]
         exp (+ (now-in-secs) default-token-ttl)
-        default-token-details {:sub sub
-                               :iss issuer-url
-                               :aud audience
-                               :sign-key rsa-priv-key
-                               :kid jwk-rsa-kid
-                               :alg :rs256
-                               :exp exp}
+        default-token-claims {:sub sub
+                              :iss issuer-url
+                              :aud audience
+                              :exp exp}
+        default-token-signing-opts {:sign-key rsa-priv-key
+                                    :kid jwk-rsa-kid
+                                    :alg :rs256}
         pubkey-cache (jwt-oidc/create-pubkey-cache jwt-oidc/one-day)
         token-cache (jwt-oidc/create-token-cache max-cached-tokens)
         config {:pubkey-cache pubkey-cache
@@ -346,7 +348,7 @@
     (testing "Successfully validate a token with some key from the Issuer public keys, result is cached"
       (with-redefs [jwt-oidc/get-url (fn [_ _ _]
                                        (json/write-str {:keys jwk-keys}))]
-        (let [token (create-token default-token-details)
+        (let [token (create-token default-token-claims default-token-signing-opts)
               result (jwt-oidc/validate-token config token logger connection-policy)]
           (is (and (= sub result)
                    (cache/has? @token-cache token))))))
@@ -357,7 +359,7 @@
       (with-redefs [jwt-oidc/get-url (fn [_ _ _]
                                        (json/write-str {:keys jwk-keys}))]
         (let [exp (- (now-in-secs) 1)
-              token (create-token (assoc default-token-details :exp exp))
+              token (create-token (assoc default-token-claims :exp exp) default-token-signing-opts)
               result (jwt-oidc/validate-token config token logger connection-policy)]
           (is (and (= nil result)
                    (cache/has? @token-cache token))))))
@@ -371,8 +373,8 @@
               token-2-ttl 8
               token-1-exp (+ now token-1-ttl)
               token-2-exp (+ now token-2-ttl)
-              token-1 (create-token (assoc default-token-details :exp token-1-exp))
-              token-2 (create-token (assoc default-token-details :exp token-2-exp))
+              token-1 (create-token (assoc default-token-claims :exp token-1-exp) default-token-signing-opts)
+              token-2 (create-token (assoc default-token-claims :exp token-2-exp) default-token-signing-opts)
 
               ;; Initial validation
               cached-before-initial-1 (cache/has? @token-cache token-1)
@@ -455,7 +457,7 @@
         (let [token-ttls (mapv #(* 2 %) (range (inc max-cached-tokens) 0 -1))
               now (now-in-secs)
               token-exps (mapv #(+ now %) token-ttls)
-              tokens (mapv #(create-token (assoc default-token-details :exp %)) token-exps)
+              tokens (mapv #(create-token (assoc default-token-claims :exp %) default-token-signing-opts) token-exps)
 
               ;; Initial validation
               count-before-initial (count @token-cache)
@@ -511,7 +513,7 @@
                                          (if (< @get-url-count tries)
                                            nil
                                            (json/write-str {:keys jwk-keys})))]
-          (let [token (create-token default-token-details)
+          (let [token (create-token default-token-claims default-token-signing-opts)
                 result-1 (jwt-oidc/validate-token config token logger connection-policy)
                 cached-1 (cache/has? @token-cache token)
                 result-2 (jwt-oidc/validate-token config token logger connection-policy)
@@ -534,10 +536,10 @@
     (testing "Fail to validate a token signed with another key, result is cached"
       (with-redefs [jwt-oidc/get-url (fn [_ _ _]
                                        (json/write-str {:keys jwk-keys}))]
-        (let [token (create-token (assoc default-token-details
-                                         :sign-key hs256-key
-                                         :kid jwk-hs256-kid
-                                         :alg :hs256))
+        (let [token (create-token default-token-claims (assoc default-token-signing-opts
+                                                              :sign-key hs256-key
+                                                              :kid jwk-hs256-kid
+                                                              :alg :hs256))
               result (jwt-oidc/validate-token config token logger connection-policy)]
           (is (and (= nil result)
                    (cache/has? @token-cache token))))))
@@ -546,8 +548,8 @@
     (testing "Fail to validate a token from another issuer, result is cached"
       (with-redefs [jwt-oidc/get-url (fn [_ _ _]
                                        (json/write-str {:keys jwk-keys}))]
-        (let [token (create-token (assoc default-token-details
-                                         :iss "https://example.invalid/"))
+        (let [token (create-token (assoc default-token-claims
+                                         :iss "https://example.invalid/") default-token-signing-opts)
               result (jwt-oidc/validate-token config token logger connection-policy)]
           (is (and (= nil (:sub result))
                    (cache/has? @token-cache token))))))
@@ -556,8 +558,8 @@
     (testing "Fail to validate a token for another audience, result is cache"
       (with-redefs [jwt-oidc/get-url (fn [_ _ _]
                                        (json/write-str {:keys jwk-keys}))]
-        (let [token (create-token (assoc default-token-details
-                                         :aud (str "another-" audience)))
+        (let [token (create-token (assoc default-token-claims
+                                         :aud (str "another-" audience)) default-token-signing-opts)
               result (jwt-oidc/validate-token config token logger connection-policy)]
           (is (and (= nil (:sub result))
                    (cache/has? @token-cache token))))))
@@ -566,7 +568,7 @@
     (testing "Fail to validate a token, not providing valid params. Result is not cached"
       (with-redefs [jwt-oidc/get-url (fn [_ _ _]
                                        (json/write-str {:keys jwk-keys}))]
-        (let [token (create-token default-token-details)
+        (let [token (create-token default-token-claims default-token-signing-opts)
               claims-nil (assoc config :claims nil)
               jwks-uri-nil (assoc config :jwks-uri nil)
               iss-nil (assoc-in config [:claims :iss] nil)
@@ -584,19 +586,19 @@
   (let [jwk-keys [jwk-rsa jwk-ecdsa jwk-hs256]
         now (now-in-secs)
         exp (+ now default-token-ttl)
-        default-token-details {:sub sub
-                               :iss issuer-url
-                               :aud audience
-                               :sign-key rsa-priv-key
-                               :kid jwk-rsa-kid
-                               :alg :rs256
-                               :exp exp}
+        default-token-claims {:sub sub
+                              :iss issuer-url
+                              :aud audience
+                              :exp exp}
+        default-token-signing-opts {:sign-key rsa-priv-key
+                                    :kid jwk-rsa-kid
+                                    :alg :rs256}
         logger nil
         config {:claims {:iss issuer-url
                          :aud audience}
                 :jwks-uri jwks-uri
                 :logger logger}
-        token (create-token default-token-details)]
+        token (create-token default-token-claims default-token-signing-opts)]
     (testing "authfn returns a function"
       (with-redefs [jwt-oidc/get-url (fn [_ _ _]
                                        (json/write-str {:keys jwk-keys}))]
