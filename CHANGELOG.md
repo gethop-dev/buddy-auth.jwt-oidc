@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+### Changed
+- Making `create-token` and `now-in-secs` test functions public
+- Split args in `create-token` test function to separate claims and key signing details
+
 ## [0.10.4] - 2022-05-25
 
 ### Changed
