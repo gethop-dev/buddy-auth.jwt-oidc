@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+## [0.10.5] - 2023-02-13
+
 ### Changed
 - Making `create-token` and `now-in-secs` test functions public
 - Split args in `create-token` test function to separate claims and key signing details
@@ -104,7 +106,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v0.10.4...HEAD
+[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v0.10.5...HEAD
+[0.10.5]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.5
 [0.10.4]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.4
 [0.10.3]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.3
 [0.10.2]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.2
