@@ -124,13 +124,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Auxiliary functions & macros
 
-(defn- now-in-secs
+(defn now-in-secs
   "Returns current System time, expressed in seconds.
   Truncates to the lower integer second."
   []
   (quot (System/currentTimeMillis) 1000))
 
-(defn- create-token
+(defn create-token
   [{:keys [sub iss aud exp] :as claims}
    {:keys [sign-key kid alg] :as _sign-opts}]
   (let [iat (now-in-secs)
