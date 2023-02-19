@@ -182,9 +182,10 @@
                                      :key-fn clojure.core/keyword))
             ;; We don't support symmetric key signatures (see ADR-001),
             ;; so filter those key types out.
-            asymmetric-keys (->> ks
-                                 (filter #(not (contains? symmetric-key-types (:kty %))))
-                                 (map keys/jwk->public-key))]
+            keep-asym-jwk (filter (fn [k] (not (contains? symmetric-key-types (:kty k)))))
+            jwks-asym-ks (map (fn [k] {(:kid k) (keys/jwk->public-key k)}))
+            get-asym-ks (comp keep-asym-jwk jwks-asym-ks)
+            asymmetric-keys (into {} get-asym-ks ks)]
         (log logger :info ::downloaded-asymmetric-keys-successfully {:jwks-uri jwks-uri
                                                                      :asymmetric-keys asymmetric-keys})
         asymmetric-keys)
@@ -194,7 +195,7 @@
         nil))))
 
 (s/def ::get-jwks*-args (s/cat :jwks-uri ::url :logger ::logger :connection-policy ::connection-policy))
-(s/def ::get-jwks*-ret (s/nilable coll?))
+(s/def ::get-jwks*-ret (s/nilable map?))
 (s/fdef get-jwks*
   :args ::get-jwks*-args
   :ret  ::get-jwks*-ret)
@@ -225,101 +226,10 @@
 
 (s/def ::get-jwks-args (s/cat :pubkey-cache ::pubkey-cache :jwks-uri ::url :logger ::logger
                               :connection-policy ::connection-policy))
-(s/def ::get-jwks-ret (s/nilable coll?))
+(s/def ::get-jwks-ret (s/nilable map?))
 (s/fdef get-jwks
   :args ::get-jwks-args
   :ret  ::get-jwks-ret)
-
-(defn validate-single-key
-  "Validate OpenId Connect ID `token`, using `pubkey`.
-  The `claims` map should contain at least the following keys:
-
-    :iss Case-sensitive URL for the Issuer Identifier.
-    :aud Audience(s) the ID Token is intended for.
-
-  If the token is valid, a map is returned with the following keys:
-
-    :sub The identity (subject) extracted from the token (if valid).
-
-    :exp The expiry time (exp) extracted from the token (if valid), as a
-         number representing the number of seconds from 1970-01-01T00:00:00Z
-         as measured in UTC.
-
-    If the token is not valid, it returns `nil`."
-  [token pubkey claims logger]
-  {:pre [(and (s/valid? string? token)
-              (s/valid? ::pubkey pubkey)
-              (s/valid? ::claims claims)
-              (s/valid? ::logger logger))]}
-  ;; Verify the tokens, following the OpenId Connect ID token validation instructions
-  ;; http://openid.net/specs/openid-connect-basic-1_0.html#IDTokenValidation
-  (try
-    (let [token-header (jws/decode-header token)
-          token-alg (:alg token-header)
-          aud (:aud claims)
-          claims (-> claims
-                     (dissoc :aud)
-                     (assoc :alg token-alg))]
-      ;; Only process asymmetric key signatures
-      (if-not (contains? symmetric-signature-algs token-alg)
-        ;; aud can be a collection of audiences and we need to check if the token
-        ;; contains any of them. Beware that aud can be a simple string too so make
-        ;; we always use a collection.
-        (let [auds (if (coll? aud) aud [aud])
-              verified-claims (some (fn [aud]
-                                      (try
-                                        (jwt/unsign token pubkey (assoc claims :aud aud))
-                                        (catch clojure.lang.ExceptionInfo e
-                                          (let [{:keys [type cause]} (ex-data e)]
-                                            (when-not (and (= type :validation)
-                                                           (= cause :aud))
-                                              (log logger :error ::unable-to-verify-token)
-                                              nil)))
-                                        (catch Exception e
-                                          (log logger :error ::exception-verifying-token
-                                               {:exception-message (.getMessage e)})
-                                          nil)))
-                                    auds)]
-          (if (seq verified-claims)
-            (let [{:keys [sub exp]} verified-claims]
-              (cond
-                (not sub)
-                (do
-                  (log logger :info ::sub-claim-not-present)
-                  nil)
-
-                (not exp)
-                (do
-                  (log logger :info ::exp-claim-not-present)
-                  nil)
-
-                :else
-                {:sub sub, :exp exp}))
-            (do
-              (log logger :info ::verified-claims-empty)
-              nil)))
-        (do
-          (log logger :info ::contains-symmetric-signature-algs)
-          nil)))
-    (catch Exception e
-      ;; If the token is malformed, has been manipulated or doesn't fulfill all the
-      ;; validation criteria, buddy functions throw an exception. In that case, we
-      ;; consider that the validation has failed.
-      (log logger :error ::validate-single-key {:exception-message (.getMessage e)})
-      nil)))
-
-(s/def ::pubkey (complement nil?))
-(s/def ::iss ::url)
-(s/def ::aud (s/or :string string? :coll coll?))
-(s/def ::claims (s/keys :req-un [::iss ::aud]))
-(s/def ::validate-single-key-args (s/cat :token string? :pubkey ::pubkey :claims ::claims :logger ::logger))
-(s/def ::sub (s/nilable string?))
-(s/def ::exp (s/nilable number?))
-(s/def ::token-details (s/keys :req-un [::sub ::exp]))
-(s/def ::validate-single-key-ret (s/nilable ::token-details))
-(s/fdef validate-single-key
-  :args ::validate-single-key-args
-  :ret  ::validate-single-key-ret)
 
 (defn validate-token*
   "Validate an OpenId Connect ID `token` against the token issuer.
@@ -342,13 +252,76 @@
               (s/valid? ::pubkeys pubkeys)
               (s/valid? ::claims claims)
               (s/valid? ::logger logger))]}
-  (let [validated (some #(validate-single-key token % claims logger) pubkeys)]
-    (or validated
+  ;; Verify the tokens, following the OpenId Connect ID token validation instructions
+  ;; http://openid.net/specs/openid-connect-basic-1_0.html#IDTokenValidation
+  (try
+    (let [token-header (jws/decode-header token)
+          token-alg (:alg token-header)
+          pubkey (get pubkeys (:kid token-header))]
+      (cond
+        ;; Only process asymmetric key signatures
+        (contains? symmetric-signature-algs token-alg)
         (do
-          (log logger :info ::invalid-token {:token token})
-          {:sub nil :exp nil}))))
+          (log logger :info ::contains-symmetric-signature-algs)
+          {:sub nil :exp nil})
 
-(s/def ::pubkeys (s/coll-of ::pubkey))
+        (not pubkey)
+        (do
+          (log logger :info ::token-uses-invalid-pubkey)
+          {:sub nil :exp nil})
+
+        :else
+        (let [aud (:aud claims)
+              claims (-> claims
+                         (dissoc :aud)
+                         (assoc :alg token-alg))
+              auds (if (coll? aud) aud [aud])
+              verified-claims (some (fn [aud]
+                                      (try
+                                        (jwt/unsign token  pubkey (assoc claims :aud aud))
+                                        (catch clojure.lang.ExceptionInfo e
+                                          (let [{:keys [type cause]} (ex-data e)]
+                                            (when-not (and (= type :validation)
+                                                           (= cause :aud))
+                                              (log logger :error ::unable-to-verify-token)
+                                              nil)))
+                                        (catch Exception e
+                                          (log logger :error ::exception-verifying-token
+                                               {:exception-message (.getMessage e)})
+                                          nil)))
+                                    auds)]
+          (if (empty? verified-claims)
+            (do
+              (log logger :info ::verified-claims-empty)
+              {:sub nil :exp nil})
+            (let [{:keys [sub exp]} verified-claims]
+              (cond
+                (not sub)
+                (do
+                  (log logger :info ::sub-claim-not-present)
+                  {:sub nil :exp nil})
+
+                (not exp)
+                (do
+                  (log logger :info ::exp-claim-not-present)
+                  {:sub nil :exp nil})
+
+                :else
+                {:sub sub, :exp exp}))))))
+    (catch Exception e
+      ;; If the token is malformed, has been manipulated or doesn't fulfill all the
+      ;; validation criteria, buddy functions throw an exception. In that case, we
+      ;; consider that the validation has failed.
+      (log logger :error ::validate-single-key {:exception-message (.getMessage e)})
+      nil)))
+
+(s/def ::iss ::url)
+(s/def ::aud (s/or :string string? :coll coll?))
+(s/def ::claims (s/keys :req-un [::iss ::aud]))
+(s/def ::sub (s/nilable string?))
+(s/def ::exp (s/nilable number?))
+(s/def ::token-details (s/keys :req-un [::sub ::exp]))
+(s/def ::pubkeys map?)
 (s/def ::validate-token*-args (s/cat :token string? :pubkeys ::pubkeys :claims ::claims :logger ::logger))
 (s/def ::validate-token*-ret ::token-details)
 (s/fdef validate-token*

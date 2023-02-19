@@ -166,7 +166,8 @@
 
 (deftest test-get-jwks*
   (testing "Only return non-symmetric keys"
-    (let [asymmetric-keys [rsa-pub-key ecdsa-pub-key]
+    (let [asymmetric-keys {jwk-rsa-kid rsa-pub-key
+                           jwk-ecdsa-kid  ecdsa-pub-key}
           jwk-keys [jwk-rsa jwk-ecdsa jwk-hs256]
           logger nil]
       (with-redefs [jwt-oidc/get-url (fn [_ _ _]
@@ -174,7 +175,8 @@
         (is (= asymmetric-keys (jwt-oidc/get-jwks* jwks-uri logger connection-policy)))))))
 
 (deftest test-get-jwks
-  (let [asymmetric-keys [rsa-pub-key ecdsa-pub-key]
+  (let [asymmetric-keys {jwk-rsa-kid rsa-pub-key
+                         jwk-ecdsa-kid ecdsa-pub-key}
         jwk-keys [jwk-rsa jwk-ecdsa jwk-hs256]
         pubkey-cache (jwt-oidc/create-pubkey-cache jwt-oidc/one-day)
         logger nil]
@@ -223,67 +225,9 @@
                      cached-4))
             (is (= tries @get-url-count))))))))
 
-(deftest test-validate-single-key
-  (let [validate-pubkey rsa-pub-key
-        exp (+ (now-in-secs) default-token-ttl)
-        default-token-claims {:sub sub
-                              :iss issuer-url
-                              :aud audience
-                              :exp exp}
-        default-token-signing-opts {:sign-key rsa-priv-key
-                                    :kid jwk-rsa-kid
-                                    :alg :rs256}
-        claims {:iss issuer-url :aud audience}]
-    (testing "Successfully validate a token with a specific key"
-      (let [token (create-token default-token-claims default-token-signing-opts)
-            result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
-        (is (= {:sub sub :exp exp} result))))
-    (testing "Fail to validate an expired token"
-      (let [exp (- (now-in-secs) 1)
-            token (create-token (assoc default-token-claims :exp exp) default-token-signing-opts)
-            result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
-        (is (= nil result))))
-    (testing "Fail to validate a token signed with another key"
-      (let [token (create-token default-token-claims (assoc default-token-signing-opts
-                                                            :sign-key ecdsa-priv-key
-                                                            :kid jwk-ecdsa-kid
-                                                            :alg :es256))
-            result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
-        (is (= nil result))))
-    (testing "Fail to validate a token from another issuer"
-      (let [token (create-token (assoc default-token-claims
-                                       :iss "https://example.invalid/") default-token-signing-opts)
-            result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
-        (is (= nil result))))
-    (testing "Fail to validate a token for another audience"
-      (let [token (create-token (assoc default-token-claims
-                                       :aud (str "another-" audience)) default-token-signing-opts)
-            result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
-        (is (= nil result))))
-    (testing "Fail to validate a token signed with a symmetric key"
-      (let [validate-pubkey hs256-key
-            token (create-token default-token-claims (assoc default-token-signing-opts
-                                                            :sign-key hs256-key
-                                                            :kid jwk-hs256-kid
-                                                            :alg :hs256))
-            result (jwt-oidc/validate-single-key token validate-pubkey claims nil)]
-        (is (= nil result))))
-    (testing "Fail to validate a token, using invalid key values"
-      (let [invalid-keys [1 "invalid"]
-            token (create-token default-token-claims default-token-signing-opts)
-            result (mapv #(jwt-oidc/validate-single-key token % claims nil) invalid-keys)]
-        (is (every? nil? result))))
-    (testing "Fail to validate a token, not providing valid params"
-      (let [token (create-token default-token-claims default-token-signing-opts)
-            iss-nil (assoc claims :iss nil)
-            aud-nil (assoc claims :aud nil)]
-        (is (thrown? ExceptionInfo (jwt-oidc/validate-single-key token nil claims nil)))
-        (is (thrown? ExceptionInfo (jwt-oidc/validate-single-key token validate-pubkey nil nil)))
-        (is (thrown? ExceptionInfo (jwt-oidc/validate-single-key token validate-pubkey iss-nil nil)))
-        (is (thrown? ExceptionInfo (jwt-oidc/validate-single-key token validate-pubkey aud-nil nil)))))))
-
 (deftest test-validate-token*
-  (let [validate-pubkeys [rsa-pub-key ecdsa-pub-key]
+  (let [validate-pubkeys {jwk-rsa-kid rsa-pub-key
+                          jwk-ecdsa-kid ecdsa-pub-key}
         exp (+ (now-in-secs) default-token-ttl)
         default-token-claims {:sub sub
                               :iss issuer-url
@@ -320,7 +264,7 @@
             result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token signed with a symmetric key"
-      (let [validate-pubkeys (conj validate-pubkeys hs256-key)
+      (let [validate-pubkeys (assoc validate-pubkeys jwk-hs256-kid hs256-key)
             token (create-token default-token-claims (assoc default-token-signing-opts
                                                             :sign-key hs256-key
                                                             :kid jwk-hs256-kid
@@ -644,8 +588,9 @@
     (testing "New valid token"
       (is (= subject (authfn {} token))))
     (testing "With existig but not expired yet token"
-      (let [authfn (jwt-oidc/authfn (assoc-in cognito-config [:claims :now]
-                                              (+ (now-in-secs) thirty-mins)))]
+      (let [authfn (jwt-oidc/authfn (assoc-in
+                                     cognito-config [:claims :now]
+                                     (+ (now-in-secs) thirty-mins)))]
         (is (= subject (authfn {} token)))))
     (testing "With expired token"
       (let [authfn (jwt-oidc/authfn (assoc-in cognito-config [:claims :now]

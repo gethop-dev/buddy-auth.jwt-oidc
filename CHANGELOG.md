@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+## [0.10.6] - 2023-02-19
+
+### Changed
+- Internal implementation details. Merged validate-single-key into validate-token* and changed the way the pubkeys from JWKS are stored in the cache. It avoids looping over pubkeys that, while valid, will not unsign the token (because it has been signed by another valid key from the same key set). And logging their corresponding failures.
+
 ## [0.10.5] - 2023-02-13
 
 ### Changed
@@ -106,7 +111,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v0.10.5...HEAD
+[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v0.10.6...HEAD
+[0.10.6]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.6
 [0.10.5]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.5
 [0.10.4]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.4
 [0.10.3]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.3
