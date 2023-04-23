@@ -20,7 +20,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Fixtures
-(defn enable-instrumentation [f]
+(defn- enable-instrumentation
+  [f]
   (-> (stest/enumerate-namespace 'dev.gethop.buddy-auth.jwt-oidc) stest/instrument)
   (f))
 
@@ -29,37 +30,52 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Cryptographic keys, in various formats
 
-(def rsa-priv-key (keys/private-key (io/resource "_files/privkey.rsa.pem")))
+(def rsa-priv-key
+  "RSA private key used for unit tests, in PEM format"
+  (keys/private-key (io/resource "_files/privkey.rsa.pem")))
 
-(def rsa-pub-key (keys/public-key (io/resource "_files/pubkey.rsa.pem")))
+(def rsa-pub-key
+  "RSA public key used for unit tests, in PEM format"
+  (keys/public-key (io/resource "_files/pubkey.rsa.pem")))
 
 (def jwk-rsa-kid
+  "kid for RSA keys in JWK format"
   "rsa")
 
 (def jwk-rsa
+  "RSA public key used for unit tests, in JWK format"
   (->
    (keys/public-key->jwk rsa-pub-key)
    (assoc :kid jwk-rsa-kid :alg "RS256" :use "sig")))
 
-(def ecdsa-priv-key (keys/private-key (io/resource "_files/privkey.ecdsa.pem")))
+(def ecdsa-priv-key
+  "ECDSA private key used for unit tests, in PEM format"
+  (keys/private-key (io/resource "_files/privkey.ecdsa.pem")))
 
-(def ecdsa-pub-key (keys/public-key (io/resource "_files/pubkey.ecdsa.pem")))
+(def ecdsa-pub-key
+  "ECDSA public key used for unit tests, in PEM format"
+  (keys/public-key (io/resource "_files/pubkey.ecdsa.pem")))
 
 (def jwk-ecdsa-kid
+  "kid for ECDSA keys in JWK format"
   "ecdsa")
 
 (def jwk-ecdsa
+  "ECDSA public key used for unit tests, in JWK format"
   (->
    (keys/public-key->jwk ecdsa-pub-key)
    (assoc :kid jwk-ecdsa-kid :alg "ES256" :use "sig")))
 
 (def hs256-key
+  "HMAC-SHA256 secret key used for unit tests"
   (nonce/random-bytes 64))
 
 (def jwk-hs256-kid
+  "kid for HMAC-SHA256 keys in JWK format"
   "hs256")
 
 (def jwk-hs256
+  "HS256 secret key used for unit tests, in JWK format"
   ;; See https://tools.ietf.org/html/rfc7518#section-6.4 for details
   (->
    {:kty "oct" :k (apply str (map char (codecs/bytes->b64u hs256-key)))}
@@ -69,15 +85,19 @@
 ;; OpenID Issuer(s) related configuration
 
 (def server-port
+  "Port of the server used for unit tests"
   8888)
 
 (def issuer-url
+  "OIDC issuer URL used for unit tests."
   (format "http://localhost:%s/magnet/buddy-auth/jwt-oidc" server-port))
 
 (def audience
+  "OIDC audience used for unit tests."
   "ac7af362-9f71-442a-baaa-9be2813a3ff5")
 
 (def jwks-uri
+  "OIDC JWKS URL used for unit tests."
   (str issuer-url "/.well-known/jwks.json"))
 
 (def default-token-ttl
@@ -121,6 +141,11 @@
                    ::exp]))
 
 (defn create-token
+  "Create an OIDC ID token with the given `claims`.
+
+  Use `sign-key` to sign the ID token claims, with `kid` key type, and
+  `alg` signing algorithm. `claims` must have, at least, the claims
+  defined in the :required-token-claims spec."
   [claims {:keys [sign-key kid alg] :as _sign-opts}]
   {:pre [(s/valid? ::required-token-claims claims)]}
   (let [iat (now-in-secs)]
@@ -555,12 +580,12 @@
                                                 (+ (now-in-secs) one-day)))]
           (is (= nil (authfn {} token))))))))
 
-(def cognito-user-credentials
+(def ^:private cognito-user-credentials
   {:username (System/getenv "COGNITO_TESTS_USERNAME")
    :password (System/getenv "COGNITO_TESTS_PASSWORD")
    :subject (System/getenv "COGNITO_TESTS_SUB")})
 
-(def cognito-config
+(def ^:private cognito-config
   {:claims {:iss (System/getenv "COGNITO_TESTS_ISSUER_URL")
             :aud (System/getenv "COGNITO_TESTS_AUDIENCE")}
    :jwks-uri (System/getenv "COGNITO_TESTS_JWKS_URI")

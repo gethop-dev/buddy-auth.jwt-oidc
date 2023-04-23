@@ -39,6 +39,7 @@
   1000)
 
 (def ^:const backoff-ms
+  "Retry policy back-off configuration (specified in milliseconds"
   [initial-delay max-delay 2.0])
 
 (def ^:const default-mct
@@ -386,6 +387,7 @@
   :ret  ::validate-token-ret)
 
 (defn authfn
+  "buddy-auth authentication function"
   [{:keys [claims jwks-uri
            pubkeys-expire-in
            max-cached-tokens
