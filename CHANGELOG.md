@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+### Fixed
+- Made `test-validate-token*` unit test be strict about not accepting symmetric encryption keys. Previously we didn't include the symmetric key in the set of keys to use for validation. Hence any token signed with the symmetric key was considered invalid.
+
 ### Changed
 - Upgraded clj-kondo version.
 - Tweaked the clj-kondo configuration to deal with the newer `unresolved-var` linter.

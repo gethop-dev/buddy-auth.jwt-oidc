@@ -210,7 +210,9 @@
 
 (deftest test-validate-token*
   (let [validate-pubkeys {jwk-rsa-kid rsa-pub-key
-                          jwk-ecdsa-kid ecdsa-pub-key}
+                          ;; Simulate that the OIDC IdP also provides a symmetric key
+                          ;; (that we should refuse to use in any case)
+                          jwk-hs256-kid hs256-key}
         exp (+ (now-in-secs) default-token-ttl)
         default-token-claims {:sub sub
                               :iss issuer-url
@@ -231,9 +233,9 @@
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token signed with another key"
       (let [token (create-token default-token-claims (assoc default-token-signing-opts
-                                                            :sign-key hs256-key
-                                                            :kid jwk-hs256-kid
-                                                            :alg :hs256))
+                                                            :sign-key ecdsa-priv-key
+                                                            :kid jwk-ecdsa-kid
+                                                            :alg :es256))
             result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token from another issuer"
