@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Upgraded clj-kondo version.
 - Tweaked the clj-kondo configuration to deal with the newer `unresolved-var` linter.
 - Let git ignore all third party libraries clj-kondo configuration files.
+- Added JVM options to let AWS SDK call some JAVA 9+ internal methods (development only).
 ## [0.10.6] - 2023-02-19
 
 ### Changed

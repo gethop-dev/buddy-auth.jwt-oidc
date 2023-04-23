@@ -39,4 +39,5 @@
                                 [com.amazonaws/aws-java-sdk-core "1.11.586"]
                                 [com.amazonaws/aws-java-sdk-s3 "1.11.586"]]
                  :plugins [[jonase/eastwood "1.2.3"]
-                           [lein-cljfmt "0.8.0"]]}})
+                           [lein-cljfmt "0.8.0"]]
+                 :jvm-opts ["--add-opens" "java.base/java.lang=ALL-UNNAMED"]}})
