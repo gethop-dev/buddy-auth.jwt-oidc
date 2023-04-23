@@ -80,23 +80,6 @@
 (def jwks-uri
   (str issuer-url "/.well-known/jwks.json"))
 
-(def openid-configuration
-  {:issuer issuer-url
-   :authorization_endpoint (str issuer-url "/authorize")
-   :token_endpoint (str issuer-url "/token")
-   :userinfo_endpoint (str issuer-url "/userinfo")
-   :jwks_uri jwks-uri
-   :registration_endpoint (str issuer-url "/register")
-   :scopes_supported ["openid"]
-   :response_types_supported ["code" "id_token," "token id_token"]
-   :subject_types_supported ["public"]
-   :id_token_signing_alg_values_supported ["RS256" "ES256" "HS256"]})
-
-(def provider
-  {:issuer issuer-url
-   :audience audience
-   :jwks-uri jwks-uri})
-
 (def default-token-ttl
   "In seconds"
   (* 60 60))
