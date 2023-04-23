@@ -2,19 +2,22 @@
 
  :linters
  {:unsorted-required-namespaces
-	{:level :warning}
+  {:level :warning}
 
-	:refer-all
-	{:exclude #{clojure.test}}
+  :refer-all
+  {:exclude #{clojure.test}}
 
-	:single-key-in
-	{:level :warning}
+  :single-key-in
+  {:level :warning}
 
-	:used-underscored-binding
-	{:level :warning}
+  :used-underscored-binding
+  {:level :warning}
 
-	:redundant-fn-wrapper
-	{:level :warning}
+  :redundant-fn-wrapper
+  {:level :warning}
 
-	:missing-docstring
-	{:level :info}}}
+  :missing-docstring
+  {:level :info}
+
+  :unresolved-var
+  {:exclude [org.httpkit.client/get]}}}

@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+### Changed
+- Upgraded clj-kondo version.
+- Tweaked the clj-kondo configuration to deal with the newer `unresolved-var` linter.
+- Let git ignore all third party libraries clj-kondo configuration files.
 ## [0.10.6] - 2023-02-19
 
 ### Changed
