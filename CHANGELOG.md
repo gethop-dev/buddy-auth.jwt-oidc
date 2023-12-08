@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added JVM options to let AWS SDK call some JAVA 9+ internal methods (development only).
 - Remove unused vars in the test namespace.
 - Upgraded depedency versions.
+- Moved all implemenation functions that are not part of the public API to the `impl` namespace. We keep those functions public to be able to test them from the tests namespace. But they are not considered part of the public API of the library, and should not be used by external parties (as they may change without notice, and without maintaining backwards compatibility).
 
 ## [0.10.6] - 2023-02-19
 

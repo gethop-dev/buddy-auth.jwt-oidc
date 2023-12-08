@@ -15,7 +15,8 @@
             [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha :as stest]
             [clojure.test :refer :all]
-            [dev.gethop.buddy-auth.jwt-oidc :as jwt-oidc])
+            [dev.gethop.buddy-auth.jwt-oidc :as jwt-oidc]
+            [dev.gethop.buddy-auth.jwt-oidc.impl.core :as impl])
   (:import [clojure.lang ExceptionInfo]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -23,6 +24,7 @@
 (defn- enable-instrumentation
   [f]
   (-> (stest/enumerate-namespace 'dev.gethop.buddy-auth.jwt-oidc) stest/instrument)
+  (-> (stest/enumerate-namespace 'dev.gethop.buddy-auth.jwt-oidc.impl.core) stest/instrument)
   (f))
 
 (use-fixtures :once enable-instrumentation)
@@ -100,6 +102,10 @@
   "OIDC JWKS URL used for unit tests."
   (str issuer-url "/.well-known/jwks.json"))
 
+(def well-known-url
+  "OIDC \".well-know\" configuration URL used for unit tests."
+  (str issuer-url "/.well-known"))
+
 (def default-token-ttl
   "In seconds"
   (* 60 60))
@@ -172,60 +178,89 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Actual tests
 
-(deftest test-get-jwks*
+(deftest test-get-jwks-from-jwks-uri
   (testing "Only return non-symmetric keys"
     (let [asymmetric-keys {jwk-rsa-kid rsa-pub-key
                            jwk-ecdsa-kid  ecdsa-pub-key}
           jwk-keys [jwk-rsa jwk-ecdsa jwk-hs256]
-          logger nil]
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
-        (is (= asymmetric-keys (jwt-oidc/get-jwks* jwks-uri logger connection-policy)))))))
+          context {:pubkey-cache (impl/create-pubkey-cache jwt-oidc/one-day)
+                   :token-cache (impl/create-token-cache 10)
+                   :claims  {:iss issuer-url
+                             :aud audience}
+                   :logger nil
+                   :connection-policy connection-policy
+                   :jwks-uri jwks-uri}]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
+        (is (= asymmetric-keys (impl/get-jwks-from-jwks-uri context jwks-uri)))))))
+
+(deftest test-get-jwks-from-well-known
+  (testing "Only return non-symmetric keys"
+    (let [asymmetric-keys {jwk-rsa-kid rsa-pub-key
+                           jwk-ecdsa-kid  ecdsa-pub-key}
+          jwk-keys [jwk-rsa jwk-ecdsa jwk-hs256]
+          context {:pubkey-cache (impl/create-pubkey-cache jwt-oidc/one-day)
+                   :token-cache (impl/create-token-cache 10)
+                   :claims  {:iss issuer-url
+                             :aud audience}
+                   :logger nil
+                   :connection-policy connection-policy
+                   :well-known-url well-known-url}]
+      (with-redefs [impl/get-url (fn [url _ _]
+                                   (condp = url
+                                     well-known-url (json/write-str {:jwks_uri jwks-uri})
+                                     jwks-uri (json/write-str {:keys jwk-keys})))]
+        (is (= asymmetric-keys (impl/get-jwks-from-well-known context well-known-url)))))))
 
 (deftest test-get-jwks
   (let [asymmetric-keys {jwk-rsa-kid rsa-pub-key
                          jwk-ecdsa-kid ecdsa-pub-key}
         jwk-keys [jwk-rsa jwk-ecdsa jwk-hs256]
-        pubkey-cache (jwt-oidc/create-pubkey-cache jwt-oidc/one-day)
-        logger nil]
+        context {:pubkey-cache (impl/create-pubkey-cache jwt-oidc/one-day)
+                 :token-cache (impl/create-token-cache 10)
+                 :claims  {:iss issuer-url
+                           :aud audience}
+                 :logger nil
+                 :connection-policy connection-policy
+                 :jwks-uri jwks-uri}]
     (testing "Only return non-symmetric keys"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
-        (is (= asymmetric-keys (jwt-oidc/get-jwks pubkey-cache jwks-uri logger connection-policy)))))
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
+        (is (= asymmetric-keys (impl/get-jwks context)))))
     ;; Remember to reset cache before every testing block!
-    (swap! pubkey-cache empty)
+    (swap! (:pubkey-cache context) empty)
     (testing "Return cached values"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
-        (let [in-cache-before (cache/has? @pubkey-cache jwks-uri)
-              retrieved-1 (jwt-oidc/get-jwks pubkey-cache jwks-uri logger connection-policy)
-              in-cache-after (cache/has? @pubkey-cache jwks-uri)
-              retrieved-2 (jwt-oidc/get-jwks pubkey-cache jwks-uri logger connection-policy)
-              in-cache-final (cache/has? @pubkey-cache jwks-uri)]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
+        (let [in-cache-before (cache/has? (deref (:pubkey-cache context)) jwks-uri)
+              retrieved-1 (impl/get-jwks context)
+              in-cache-after (cache/has? (deref (:pubkey-cache context)) jwks-uri)
+              retrieved-2 (impl/get-jwks context)
+              in-cache-final (cache/has? (deref (:pubkey-cache context)) jwks-uri)]
           (is (and (= asymmetric-keys retrieved-1 retrieved-2)
                    (not in-cache-before)
                    in-cache-after
                    in-cache-final)))))
-    (swap! pubkey-cache empty)
+    (swap! (:pubkey-cache context) empty)
     (testing "Don't cache JKWS we can't retrieve"
       (let [get-url-count (atom 0)
             tries 3]
-        (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                         (swap! get-url-count inc)
-                                         (if (< @get-url-count tries)
-                                           nil
-                                           (json/write-str {:keys jwk-keys})))]
-          (let [retrieved-1 (jwt-oidc/get-jwks pubkey-cache jwks-uri logger connection-policy)
-                cached-1 (cache/has? @pubkey-cache jwks-uri)
-                retrieved-2 (jwt-oidc/get-jwks pubkey-cache jwks-uri logger connection-policy)
-                cached-2 (cache/has? @pubkey-cache jwks-uri)
-                retrieved-3 (jwt-oidc/get-jwks pubkey-cache jwks-uri logger connection-policy)
-                cached-3 (cache/has? @pubkey-cache jwks-uri)
-                retrieved-4 (jwt-oidc/get-jwks pubkey-cache jwks-uri logger connection-policy)
-                cached-4 (cache/has? @pubkey-cache jwks-uri)]
-            (is (and (nil? retrieved-1)
+        (with-redefs [impl/get-url (fn [_ _ _]
+                                     (swap! get-url-count inc)
+                                     (if (< @get-url-count tries)
+                                       nil
+                                       (json/write-str {:keys jwk-keys})))]
+          (let [retrieved-1 (impl/get-jwks context)
+                cached-1 (cache/has? (deref (:pubkey-cache context)) jwks-uri)
+                retrieved-2 (impl/get-jwks context)
+                cached-2 (cache/has? (deref (:pubkey-cache context)) jwks-uri)
+                retrieved-3 (impl/get-jwks context)
+                cached-3 (cache/has? (deref (:pubkey-cache context)) jwks-uri)
+                retrieved-4 (impl/get-jwks context)
+                cached-4 (cache/has? (deref (:pubkey-cache context)) jwks-uri)]
+            (is (and (empty? retrieved-1)
                      (not cached-1)
-                     (nil? retrieved-2)
+                     (empty? retrieved-2)
                      (not cached-2)
                      retrieved-3
                      cached-3
@@ -249,29 +284,29 @@
         claims {:iss issuer-url :aud audience}]
     (testing "Successfully validate a token with some key from the Issuer public keys"
       (let [token (create-token default-token-claims default-token-signing-opts)
-            result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
+            result (impl/validate-token* token validate-pubkeys claims nil)]
         (is (= {:sub sub :exp exp} result))))
     (testing "Fail to validate an expired token"
       (let [exp (- (now-in-secs) 1)
             token (create-token (assoc default-token-claims :exp exp) default-token-signing-opts)
-            result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
+            result (impl/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token signed with another key"
       (let [token (create-token default-token-claims (assoc default-token-signing-opts
                                                             :sign-key ecdsa-priv-key
                                                             :kid jwk-ecdsa-kid
                                                             :alg :es256))
-            result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
+            result (impl/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token from another issuer"
       (let [token (create-token (assoc default-token-claims
                                        :iss "https://example.invalid/") default-token-signing-opts)
-            result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
+            result (impl/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token for another audience"
       (let [token (create-token (assoc default-token-claims
                                        :aud (str "another-" audience)) default-token-signing-opts)
-            result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
+            result (impl/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token signed with a symmetric key"
       (let [validate-pubkeys (assoc validate-pubkeys jwk-hs256-kid hs256-key)
@@ -279,12 +314,12 @@
                                                             :sign-key hs256-key
                                                             :kid jwk-hs256-kid
                                                             :alg :hs256))
-            result (jwt-oidc/validate-token* token validate-pubkeys claims nil)]
+            result (impl/validate-token* token validate-pubkeys claims nil)]
         (is (= nil (:sub result)))))
     (testing "Fail to validate a token, not providing valid params"
       (let [token (create-token default-token-claims default-token-signing-opts)]
-        (is (thrown? ExceptionInfo (jwt-oidc/validate-token* token nil claims nil)))
-        (is (thrown? ExceptionInfo (jwt-oidc/validate-token* token -1 claims nil)))))))
+        (is (thrown? ExceptionInfo (impl/validate-token* token nil claims nil)))
+        (is (thrown? ExceptionInfo (impl/validate-token* token -1 claims nil)))))))
 
 (deftest test-validate-token
   (let [jwk-keys [jwk-rsa jwk-ecdsa jwk-hs256]
@@ -296,37 +331,38 @@
         default-token-signing-opts {:sign-key rsa-priv-key
                                     :kid jwk-rsa-kid
                                     :alg :rs256}
-        pubkey-cache (jwt-oidc/create-pubkey-cache jwt-oidc/one-day)
-        token-cache (jwt-oidc/create-token-cache max-cached-tokens)
-        config {:pubkey-cache pubkey-cache
-                :token-cache token-cache
-                :jwks-uri jwks-uri
-                :claims {:iss issuer-url
-                         :aud audience}}
-        logger nil]
+        pubkey-cache (impl/create-pubkey-cache jwt-oidc/one-day)
+        token-cache (impl/create-token-cache max-cached-tokens)
+        context {:pubkey-cache pubkey-cache
+                 :token-cache token-cache
+                 :claims {:iss issuer-url
+                          :aud audience}
+                 :logger nil
+                 :connection-policy connection-policy
+                 :jwks-uri jwks-uri}]
     (testing "Successfully validate a token with some key from the Issuer public keys, result is cached"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [token (create-token default-token-claims default-token-signing-opts)
-              result (jwt-oidc/validate-token config token logger connection-policy)]
+              result (impl/validate-token context token)]
           (is (and (= sub result)
                    (cache/has? @token-cache token))))))
     ;; Remember to reset cache before every testing block!
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
     (testing "Fail to validate an expired token, result is cached"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [exp (- (now-in-secs) 1)
               token (create-token (assoc default-token-claims :exp exp) default-token-signing-opts)
-              result (jwt-oidc/validate-token config token logger connection-policy)]
+              result (impl/validate-token context token)]
           (is (and (= nil result)
                    (cache/has? @token-cache token))))))
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
     (testing "Check that valid tokens are not cached after their expiry time"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [now (now-in-secs)
               token-1-ttl 4
               token-2-ttl 8
@@ -338,8 +374,8 @@
               ;; Initial validation
               cached-before-initial-1 (cache/has? @token-cache token-1)
               cached-before-initial-2 (cache/has? @token-cache token-2)
-              result-initial-1 (jwt-oidc/validate-token config token-1 logger connection-policy)
-              result-initial-2 (jwt-oidc/validate-token config token-2 logger connection-policy)
+              result-initial-1 (impl/validate-token context token-1)
+              result-initial-2 (impl/validate-token context token-2)
               cached-after-initial-1 (cache/has? @token-cache token-1)
               cached-after-initial-2 (cache/has? @token-cache token-2)
 
@@ -347,8 +383,8 @@
               _ (Thread/sleep 2000)
               cached-before-2000-1 (cache/has? @token-cache token-1)
               cached-before-2000-2 (cache/has? @token-cache token-2)
-              result-after-2000-1 (jwt-oidc/validate-token config token-1 logger connection-policy)
-              result-after-2000-2 (jwt-oidc/validate-token config token-2 logger connection-policy)
+              result-after-2000-1 (impl/validate-token context token-1)
+              result-after-2000-2 (impl/validate-token context token-2)
               cached-after-2000-1 (cache/has? @token-cache token-1)
               cached-after-2000-2 (cache/has? @token-cache token-2)
 
@@ -356,8 +392,8 @@
               _ (Thread/sleep 4000)
               cached-before-6000-1 (cache/has? @token-cache token-1)
               cached-before-6000-2 (cache/has? @token-cache token-2)
-              result-after-6000-1 (jwt-oidc/validate-token config token-1 logger connection-policy)
-              result-after-6000-2 (jwt-oidc/validate-token config token-2 logger connection-policy)
+              result-after-6000-1 (impl/validate-token context token-1)
+              result-after-6000-2 (impl/validate-token context token-2)
               cached-after-6000-1 (cache/has? @token-cache token-1)
               cached-after-6000-2 (cache/has? @token-cache token-2)
 
@@ -365,8 +401,8 @@
               _ (Thread/sleep 6000)
               cached-before-10000-1 (cache/has? @token-cache token-1)
               cached-before-10000-2 (cache/has? @token-cache token-2)
-              result-after-10000-1 (jwt-oidc/validate-token config token-1 logger connection-policy)
-              result-after-10000-2 (jwt-oidc/validate-token config token-2 logger connection-policy)
+              result-after-10000-1 (impl/validate-token context token-1)
+              result-after-10000-2 (impl/validate-token context token-2)
               cached-after-10000-1 (cache/has? @token-cache token-1)
               cached-after-10000-2 (cache/has? @token-cache token-2)]
           ;; Initial validation
@@ -411,8 +447,8 @@
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
     (testing "Check that we don't keep more than configured tokens in validation cache"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [token-ttls (mapv #(* 2 %) (range (inc max-cached-tokens) 0 -1))
               now (now-in-secs)
               token-exps (mapv #(+ now %) token-ttls)
@@ -420,21 +456,21 @@
 
               ;; Initial validation
               count-before-initial (count @token-cache)
-              _ (mapv #(jwt-oidc/validate-token config % logger connection-policy) tokens)
+              _ (mapv #(impl/validate-token context %) tokens)
               tokens-initial (mapv #(get-in @token-cache [% :sub]) tokens)
               count-after-initial (count @token-cache)
 
               ;; After wating 2500 ms
               _ (Thread/sleep 2500)
               count-before-2500 (count @token-cache)
-              _ (mapv #(jwt-oidc/validate-token config % logger connection-policy) tokens)
+              _ (mapv #(impl/validate-token context %) tokens)
               tokens-2500 (mapv #(get-in @token-cache [% :sub]) tokens)
               count-after-2500 (count @token-cache)
 
               ;; After wating 5000 ms
               _ (Thread/sleep 2000)
               count-before-5000 (count @token-cache)
-              _ (mapv #(jwt-oidc/validate-token config % logger connection-policy) tokens)
+              _ (mapv #(impl/validate-token context %) tokens)
               tokens-5000 (mapv #(get-in @token-cache [% :sub]) tokens)
               count-after-5000 (count @token-cache)]
           ;; Initial validation. No token should have expired, and the token with the
@@ -467,19 +503,19 @@
     (testing "Fail to validate token, no signing keys available, result is not cached"
       (let [get-url-count (atom 0)
             tries 3]
-        (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                         (swap! get-url-count inc)
-                                         (if (< @get-url-count tries)
-                                           nil
-                                           (json/write-str {:keys jwk-keys})))]
+        (with-redefs [impl/get-url (fn [_ _ _]
+                                     (swap! get-url-count inc)
+                                     (if (< @get-url-count tries)
+                                       nil
+                                       (json/write-str {:keys jwk-keys})))]
           (let [token (create-token default-token-claims default-token-signing-opts)
-                result-1 (jwt-oidc/validate-token config token logger connection-policy)
+                result-1 (impl/validate-token context token)
                 cached-1 (cache/has? @token-cache token)
-                result-2 (jwt-oidc/validate-token config token logger connection-policy)
+                result-2 (impl/validate-token context token)
                 cached-2 (cache/has? @token-cache token)
-                result-3 (jwt-oidc/validate-token config token logger connection-policy)
+                result-3 (impl/validate-token context token)
                 cached-3 (cache/has? @token-cache token)
-                result-4 (jwt-oidc/validate-token config token logger connection-policy)
+                result-4 (impl/validate-token context token)
                 cached-4 (cache/has? @token-cache token)]
             (is (and (nil? result-1)
                      (not cached-1)
@@ -493,52 +529,52 @@
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
     (testing "Fail to validate a token signed with another key, result is cached"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [token (create-token default-token-claims (assoc default-token-signing-opts
                                                               :sign-key hs256-key
                                                               :kid jwk-hs256-kid
                                                               :alg :hs256))
-              result (jwt-oidc/validate-token config token logger connection-policy)]
+              result (impl/validate-token context token)]
           (is (and (= nil result)
                    (cache/has? @token-cache token))))))
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
     (testing "Fail to validate a token from another issuer, result is cached"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [token (create-token (assoc default-token-claims
                                          :iss "https://example.invalid/") default-token-signing-opts)
-              result (jwt-oidc/validate-token config token logger connection-policy)]
+              result (impl/validate-token context token)]
           (is (and (= nil (:sub result))
                    (cache/has? @token-cache token))))))
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
     (testing "Fail to validate a token for another audience, result is cache"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [token (create-token (assoc default-token-claims
                                          :aud (str "another-" audience)) default-token-signing-opts)
-              result (jwt-oidc/validate-token config token logger connection-policy)]
+              result (impl/validate-token context token)]
           (is (and (= nil (:sub result))
                    (cache/has? @token-cache token))))))
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
     (testing "Fail to validate a token, not providing valid params. Result is not cached"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [token (create-token default-token-claims default-token-signing-opts)
-              claims-nil (assoc config :claims nil)
-              jwks-uri-nil (assoc config :jwks-uri nil)
-              iss-nil (assoc-in config [:claims :iss] nil)
-              aud-nil (assoc-in config [:claims :aud] nil)]
-          (is (thrown? ExceptionInfo (jwt-oidc/validate-token claims-nil token logger connection-policy)))
+              claims-nil (assoc context :claims nil)
+              jwks-uri-nil (assoc context :jwks-uri nil)
+              iss-nil (assoc-in context [:claims :iss] nil)
+              aud-nil (assoc-in context [:claims :aud] nil)]
+          (is (thrown? ExceptionInfo (impl/validate-token claims-nil token)))
           (is (not (cache/has? @token-cache token)))
-          (is (thrown? ExceptionInfo (jwt-oidc/validate-token jwks-uri-nil token logger connection-policy)))
+          (is (thrown? ExceptionInfo (impl/validate-token jwks-uri-nil token)))
           (is (not (cache/has? @token-cache token)))
-          (is (thrown? ExceptionInfo (jwt-oidc/validate-token iss-nil token logger connection-policy)))
+          (is (thrown? ExceptionInfo (impl/validate-token iss-nil token)))
           (is (not (cache/has? @token-cache token)))
-          (is (thrown? ExceptionInfo (jwt-oidc/validate-token aud-nil token logger connection-policy)))
+          (is (thrown? ExceptionInfo (impl/validate-token aud-nil token)))
           (is (not (cache/has? @token-cache token))))))))
 
 (deftest test-authfn
@@ -559,23 +595,23 @@
                 :logger logger}
         token (create-token default-token-claims default-token-signing-opts)]
     (testing "authfn returns a function"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (is (fn? (jwt-oidc/authfn config)))))
     (testing "Success authentication with valid token"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [authfn (jwt-oidc/authfn config)]
           (is (= sub (authfn {} token))))))
     (testing "With existig but not expired yet token"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [authfn (jwt-oidc/authfn (assoc-in config [:claims :now]
                                                 (+ (now-in-secs) thirty-mins)))]
           (is (= sub (authfn {} token))))))
     (testing "With expired token"
-      (with-redefs [jwt-oidc/get-url (fn [_ _ _]
-                                       (json/write-str {:keys jwk-keys}))]
+      (with-redefs [impl/get-url (fn [_ _ _]
+                                   (json/write-str {:keys jwk-keys}))]
         (let [authfn (jwt-oidc/authfn (assoc-in config [:claims :now]
                                                 (+ (now-in-secs) one-day)))]
           (is (= nil (authfn {} token))))))))
