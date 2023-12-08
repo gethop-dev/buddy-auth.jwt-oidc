@@ -76,11 +76,6 @@
   ;; The caching library expects TTLs in milli-seconds.
   (atom (cache/ttl-cache-factory {} :ttl (* 1000 pubkeys-expire-in))))
 
-(s/def ::logger #(satisfies? duct.logger/Logger %))
-(s/def ::core-cache #(satisfies? clojure.core.cache/CacheProtocol %))
-(s/def ::create-pubkey-cache-args (s/cat :pubkeys-expire-in int?))
-(s/def ::pubkey-cache #(s/valid? ::core-cache @%))
-(s/def ::create-pubkey-cache-ret ::pubkey-cache)
 (s/fdef create-pubkey-cache
   :args ::create-pubkey-cache-args
   :ret  ::create-pubkey-cache-ret)
@@ -97,9 +92,6 @@
        (ttlcache/per-item-ttl-cache-factory :ttl-getter (fn [_ v] (:ttl v)))
        (cache/lru-cache-factory :threshold max-cached-tokens))))
 
-(s/def ::create-token-cache-args (s/cat :max-cached-tokens int?))
-(s/def ::token-cache #(s/valid? ::core-cache @%))
-(s/def ::create-token-cache-ret ::token-cache)
 (s/fdef create-token-cache
   :args ::create-token-cache-args
   :ret  ::create-token-cache-ret)
@@ -154,11 +146,6 @@
           (log logger :info ::get-url-invalid-status {:url url :details {:status status}})
           nil)))))
 
-(s/def ::url #(or (string? %) (instance? java.net.URL %)))
-(s/def ::timeout pos-int?)
-(s/def ::retries pos-int?)
-(s/def ::connection-policy (s/keys :req-un [::timeout
-                                            ::retries]))
 (s/def ::get-url-args (s/cat :url ::url :logger ::logger :connection-policy ::connection-policy))
 (s/def ::get-url-ret (s/nilable string?))
 (s/fdef get-url
@@ -316,13 +303,6 @@
       (log logger :error ::validate-single-key {:exception-message (.getMessage e)})
       nil)))
 
-(s/def ::iss ::url)
-(s/def ::aud (s/or :string string? :coll coll?))
-(s/def ::claims (s/keys :req-un [::iss ::aud]))
-(s/def ::sub (s/nilable string?))
-(s/def ::exp (s/nilable number?))
-(s/def ::token-details (s/keys :req-un [::sub ::exp]))
-(s/def ::pubkeys map?)
 (s/def ::validate-token*-args (s/cat :token string? :pubkeys ::pubkeys :claims ::claims :logger ::logger))
 (s/def ::validate-token*-ret ::token-details)
 (s/fdef validate-token*
@@ -341,8 +321,6 @@
       (assoc token :ttl ttl))))
 
 (s/def ::set-ttl-args (s/cat :token ::token-details))
-(s/def ::ttl pos-int?)
-(s/def ::has-ttl (s/keys :req-un [::ttl]))
 (s/def ::set-ttl-ret (s/and ::token-details ::has-ttl))
 (s/fdef set-ttl
   :args ::set-ttl-args
@@ -377,8 +355,6 @@
       (:sub cache-entry))
     (log logger :error ::cant-get-jwks-from-uri {:jwks-uri (:jwks-uri config)})))
 
-(s/def ::jwks-uri ::url)
-(s/def ::config (s/keys :req-un [::pubkey-cache ::token-cache ::jwks-uri ::claims]))
 (s/def ::validate-token-args (s/cat :config ::config :token string? :logger ::logger
                                     :connection-policy ::connection-policy))
 (s/def ::validate-token-ret ::sub)
