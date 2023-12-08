@@ -68,10 +68,16 @@ are mandatory and their values must not be `nil`:
       case-sensitive strings. In the common special case when there is
       just one audience, the aud value MAY be a single case-sensitive
 	  string.
-* `:jwks-uri` is the URL of the OpenID Provider's JSON Web Key Set
-  [JWK] document. This contains the signing key(s) the Relaying Party
-  uses to validate signatures from the OpenID Provider. It must be a
-  `string` or a `java.net.URL` value.
+* Either one of (but only one):
+    * `:well-known-url` is the URL of the OpenID Provider's
+      Configuration Document (also known as the "well-known
+      openid-configuration").  It must be a `string` or a
+      `java.net.URL` value.
+    * `:jwks-uri` is the URL of the OpenID Provider's JSON Web Key Set
+      [JWK] document. This contains the signing key(s) the Relaying
+      Party uses to validate signatures from the OpenID Provider. It
+      must be a `string` or a `java.net.URL` value.
+
 
 You can also use the following optional configuration keys:
 
@@ -82,6 +88,14 @@ You can also use the following optional configuration keys:
 * `:max-cached-tokens` which is the maximum amount of cached ID Token
   validation results. It has to be an integer value greater than
   zero. If not specified, the default value is 50.
+* `:well-known-retrieval-timeout` which specifies the connection
+  timeout (in milli-seconds) for "well-known openid-configuration"
+  retrieval. It has to be an integer value greater than zero. If not
+  specified, the default value is 500 milli-seconds.
+* `:well-known-retrieval-retries` which specifies the number of
+  additional retries in case of connection failure for "well-known
+  openid-configuration" retrieval. It has to be an integer value
+  greater than zero. If not specified, the default value is 3 retries.
 * `:jwks-retrieval-timeout` which specifies the connection timeout (in
   milli-seconds) for JWKS retrieval. It has to be an integer value
   greater than zero. If not specified, the default value is 500
@@ -95,9 +109,19 @@ You can also use the following optional configuration keys:
   that may prevent tokens from being validated (e.g., inability to get
   the JWKS URL, getting invalid keys in the JWKS document, etc.)
 
-Example (using all optional configuration keys with their default values):
+Examples (using all optional configuration keys with their default values):
 
 ```clojure
+{:dev.gethop.buddy-auth/jwt-oidc
+ {:claims {:iss #duct/env ["ISSUER_URL" Str]
+           :aud #duct/env ["AUDIENCE" Str]}
+  :well-known-url #duct/env ["WELL_KNOWN_URL" Str]
+  :pubkeys-expire-in 86400
+  :max-cached-tokens 50
+  :well-known-retrieval-timeout 500
+  :well-known-retrieval-retries 3
+  :logger #ig/ref :duct/logger}}
+
 {:dev.gethop.buddy-auth/jwt-oidc
  {:claims {:iss #duct/env ["ISSUER_URL" Str]
            :aud #duct/env ["AUDIENCE" Str]}

@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+### Added
+- Added new configuration setting, `:well-known-url`. It can be used, instead of the `:jwks-uri` configuration setting, to specify where to get the JWKS token signing keys from. It should contain the  URL of the OpenID Provider's Configuration Document (also known as the "well-known openid-configuration").
+
 ### Fixed
 - Made `test-validate-token*` unit test be strict about not accepting symmetric encryption keys. Previously we didn't include the symmetric key in the set of keys to use for validation. Hence any token signed with the symmetric key was considered invalid.
 - Fixed all clj-kondo warnings (especially by adding docstrings to vars that we expect to be public, and making the rest private).
