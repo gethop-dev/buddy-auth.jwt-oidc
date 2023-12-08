@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+## [1.0.0] 2023.12.08
+
 ### Added
 - Added new configuration setting, `:well-known-url`. It can be used, instead of the `:jwks-uri` configuration setting, to specify where to get the JWKS token signing keys from. It should contain the  URL of the OpenID Provider's Configuration Document (also known as the "well-known openid-configuration").
 
@@ -127,7 +129,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v0.10.6...HEAD
+[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.0
 [0.10.6]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.6
 [0.10.5]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.5
 [0.10.4]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.4
