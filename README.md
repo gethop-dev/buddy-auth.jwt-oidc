@@ -21,7 +21,7 @@ below.
 To use this library you also need to add the following dependency to
 your project (use the most recent version of it):
 
-    [duct/middleware.buddy "0.1.0"]
+    [duct/middleware.buddy "0.2.0"]
 
 ### Caching
 
