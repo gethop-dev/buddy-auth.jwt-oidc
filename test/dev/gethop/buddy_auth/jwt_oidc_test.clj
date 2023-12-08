@@ -78,7 +78,7 @@
   "HS256 secret key used for unit tests, in JWK format"
   ;; See https://tools.ietf.org/html/rfc7518#section-6.4 for details
   (->
-   {:kty "oct" :k (apply str (map char (codecs/bytes->b64u hs256-key)))}
+   {:kty "oct" :k (codecs/bytes->b64-str hs256-key)}
    (assoc :kid jwk-hs256-kid :alg "HS256" :use "sig")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
