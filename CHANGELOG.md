@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Let git ignore all third party libraries clj-kondo configuration files.
 - Added JVM options to let AWS SDK call some JAVA 9+ internal methods (development only).
 - Remove unused vars in the test namespace.
+- Upgraded depedency versions.
 
 ## [0.10.6] - 2023-02-19
 

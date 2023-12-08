@@ -5,11 +5,11 @@
   :license {:name "Mozilla Public Licence 2.0"
             :url "https://www.mozilla.org/en-US/MPL/2.0/"}
   :dependencies [[org.clojure/clojure "1.10.0"]
-                 [buddy/buddy-core "1.10.413"]
-                 [buddy/buddy-sign "3.4.333"]
-                 [diehard "0.11.6"]
+                 [buddy/buddy-core "1.11.423"]
+                 [buddy/buddy-sign "3.5.351"]
+                 [diehard "0.11.10"]
                  [duct/logger "0.3.0"]
-                 [http-kit "2.6.0"]
+                 [http-kit "2.7.0"]
                  [integrant "0.8.0"]
                  [org.clojure/core.cache "1.0.225"]
                  [org.clojure/data.json "2.4.0"]
@@ -38,6 +38,6 @@
                                 [com.amazonaws/aws-java-sdk-cognitoidp "1.11.586"]
                                 [com.amazonaws/aws-java-sdk-core "1.11.586"]
                                 [com.amazonaws/aws-java-sdk-s3 "1.11.586"]]
-                 :plugins [[jonase/eastwood "1.2.3"]
-                           [lein-cljfmt "0.8.0"]]
+                 :plugins [[jonase/eastwood "1.4.2"]
+                           [lein-cljfmt "0.9.2"]]
                  :jvm-opts ["--add-opens" "java.base/java.lang=ALL-UNNAMED"]}})
