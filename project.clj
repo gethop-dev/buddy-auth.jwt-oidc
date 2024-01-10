@@ -1,4 +1,4 @@
-(defproject dev.gethop/buddy-auth.jwt-oidc "1.0.1"
+(defproject dev.gethop/buddy-auth.jwt-oidc "1.0.2-SNAPSHOT"
   :description "Buddy-auth JWT token validator, for OpenID Connect ID tokens"
   :url "https://github.com/gethop-dev/buddy-auth.jwt-oidc"
   :min-lein-version "2.9.8"
