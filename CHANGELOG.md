@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+### Fixed
+- Some types of token corruption/manipulation throwed `java.lang.Error` derived exceptions, that the library didn't catch (it only catched `java.lang.Exception` derived ones). Now the library catches `java.lang.Throwable` to cover all the bases.
+
 ## [1.0.0] 2023.12.08
 
 ### Added

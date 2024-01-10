@@ -95,7 +95,7 @@
                   {:severity :warn, :reason :transfer-aborted}
 
                   ;; Any other kind of exception
-                  java.lang.Exception
+                  java.lang.Throwable
                   {:severity :info, :reason :unknown-reason})]
     (log logger (:severity details) ::cant-get-url {:url url :details (:reason details)})
     nil))
@@ -128,7 +128,7 @@
               (s/valid? ::specs/logger logger)
               (s/valid? ::specs/connection-policy connection-policy))]}
   (dh/with-retry {:policy (retry-policy retries backoff-ms)
-                  :retry-on Exception
+                  :retry-on Throwable
                   :fallback (fn [_ e] (fallback e logger url))}
     (let [{:keys [status body error]} @(http/get url {:timeout timeout :as :text})]
       (when error
@@ -171,7 +171,7 @@
         (log logger :info ::downloaded-asymmetric-keys-successfully {:jwks-uri jwks-uri
                                                                      :asymmetric-keys asymmetric-keys})
         asymmetric-keys)
-      (catch Exception e
+      (catch Throwable e
         (log logger :error ::invalid-jwks-keys-from-uri {:jwks-uri jwks-uri
                                                          :exception-message (.getMessage e)})
         nil))))
@@ -198,7 +198,7 @@
                                              :key-fn clojure.core/keyword)]
         (log logger :info ::downloaded-well-known-config-successfully {:well-known-config-url well-known-url})
         (get-jwks-from-jwks-uri context (:jwks_uri well-known-config)))
-      (catch Exception e
+      (catch Throwable e
         (log logger :error ::invalid-well-known-config {:well-known-config-url well-known-url
                                                         :exception-message (.getMessage e)})
         nil))))
@@ -296,7 +296,7 @@
                                                            (= cause :aud))
                                               (log logger :error ::unable-to-verify-token)
                                               nil)))
-                                        (catch Exception e
+                                        (catch Throwable e
                                           (log logger :error ::exception-verifying-token
                                                {:exception-message (.getMessage e)})
                                           nil)))
@@ -319,7 +319,7 @@
 
                 :else
                 {:sub sub, :exp exp}))))))
-    (catch Exception e
+    (catch Throwable e
       ;; If the token is malformed, has been manipulated or doesn't fulfill all the
       ;; validation criteria, buddy functions throw an exception. In that case, we
       ;; consider that the validation has failed.
