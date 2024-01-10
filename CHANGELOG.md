@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+## [1.0.1] 2024.01.10
+
 ### Fixed
 - Some types of token corruption/manipulation throwed `java.lang.Error` derived exceptions, that the library didn't catch (it only catched `java.lang.Exception` derived ones). Now the library catches `java.lang.Throwable` to cover all the bases.
 
@@ -132,7 +134,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v1.0.0...HEAD
+[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.1
 [1.0.0]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.0
 [0.10.6]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.6
 [0.10.5]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.5
