@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+## [1.0.2] 2024.03.21
+
 ### Fixed
 - Fixed the spec for the `aud` claim, to reject bad values.
 
@@ -137,7 +139,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v1.0.1...HEAD
+[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.2
 [1.0.1]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.1
 [1.0.0]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.0
 [0.10.6]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v0.10.6
