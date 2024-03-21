@@ -18,7 +18,7 @@
 (s/def ::connection-policy (s/keys :req-un [::timeout ::retries]))
 
 (s/def ::iss ::url)
-(s/def ::aud (s/or :string string? :coll coll?))
+(s/def ::aud (s/or :string string? :coll (s/coll-of string? :min-count 1)))
 (s/def ::claims (s/keys :req-un [::iss ::aud]))
 (s/def ::jwks-uri ::url)
 (s/def ::well-known-url ::url)

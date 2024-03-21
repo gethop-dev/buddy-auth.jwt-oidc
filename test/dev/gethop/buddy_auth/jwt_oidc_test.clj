@@ -614,7 +614,18 @@
                                    (json/write-str {:keys jwk-keys}))]
         (let [authfn (jwt-oidc/authfn (assoc-in config [:claims :now]
                                                 (+ (now-in-secs) one-day)))]
-          (is (= nil (authfn {} token))))))))
+          (is (= nil (authfn {} token))))))
+    (testing "With invalid aud claim"
+      (is (thrown? ExceptionInfo
+                   (jwt-oidc/authfn (assoc-in config [:claims :aud] nil))))
+      (is (thrown? ExceptionInfo
+                   (jwt-oidc/authfn (assoc-in config [:claims :aud] []))))
+      (is (thrown? ExceptionInfo
+                   (jwt-oidc/authfn (assoc-in config [:claims :aud] [nil]))))
+      (is (thrown? ExceptionInfo
+                   (jwt-oidc/authfn (assoc-in config [:claims :aud] ["some-aud" nil]))))
+      (is (thrown? ExceptionInfo
+                   (jwt-oidc/authfn (assoc-in config [:claims :aud] [nil "some-aud"])))))))
 
 (def ^:private cognito-user-credentials
   {:username (System/getenv "COGNITO_TESTS_USERNAME")

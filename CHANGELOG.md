@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+### Fixed
+- Fixed the spec for the `aud` claim, to reject bad values.
+
 ## [1.0.1] 2024.01.10
 
 ### Fixed
