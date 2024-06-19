@@ -80,7 +80,7 @@
        (ttlcache/per-item-ttl-cache-factory :ttl-getter (fn [_ v] (:ttl v)))
        (cache/lru-cache-factory :threshold max-cached-tokens))))
 
-(defn- fallback [e logger url]
+(defn- fallback [^Throwable e logger url]
   (let [details (condp instance? e
                   ;; Socket layer related exceptions
                   java.net.UnknownHostException
@@ -96,7 +96,9 @@
 
                   ;; Any other kind of exception
                   java.lang.Throwable
-                  {:severity :info, :reason :unknown-reason})]
+                  {:severity :info, :reason {:cause :unknown-reason
+                                             :exception-message (.getMessage e)
+                                             :exception-type (class e)}})]
     (log logger (:severity details) ::cant-get-url {:url url :details (:reason details)})
     nil))
 
