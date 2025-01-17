@@ -49,9 +49,21 @@ library refuses to validate symmetric signatures.
 
 ## Usage
 
+### Initialization of the Integrant key
+
 The library currently supports a single Integrant key:
-`:dev.gethop.buddy-auth/jwt-oidc`. To initialize it, the following keys
-are mandatory and their values must not be `nil`:
+`:dev.gethop.buddy-auth/jwt-oidc`. To initialize the Integrant key you
+have to provide an Identity Provider (IdP) configuration map, or a
+non-empty vector of such IdP configuration maps.
+
+The spec for the IdP configuration map is available under the
+`:dev.gethop.buddy-auth.jwt-oidc/ip-config` key in the global spec
+registry. That spec is used in a pre-condition assertion for the
+argument, and a `clojure.lang.ExceptionInfo` is thrown if the
+configuration map doesn't conform to the spec.
+
+IdP configuration maps must have the following keys, and their values
+must not be `nil`:
 
 * `:claims` key which is a map with the set of OpenID Connect claims
   that the ID Token should satisfy. At least the following mandatory
@@ -68,18 +80,18 @@ are mandatory and their values must not be `nil`:
       case-sensitive strings. In the common special case when there is
       just one audience, the aud value MAY be a single case-sensitive
 	  string.
-* Either one of (but only one):
+* Either one but, only one, of:
     * `:well-known-url` is the URL of the OpenID Provider's
       Configuration Document (also known as the "well-known
-      openid-configuration").  It must be a `string` or a
+      openid-configuration"). It must be a `string` or a
       `java.net.URL` value.
     * `:jwks-uri` is the URL of the OpenID Provider's JSON Web Key Set
       [JWK] document. This contains the signing key(s) the Relaying
       Party uses to validate signatures from the OpenID Provider. It
       must be a `string` or a `java.net.URL` value.
 
-
-You can also use the following optional configuration keys:
+IdP configuration maps can also use the following optional
+configuration keys:
 
 * `:pubkeys-expire-in` which is the time to live for the cached OpenID
   Provider signing keys. It has to be specified in an integral number
@@ -106,15 +118,40 @@ You can also use the following optional configuration keys:
   value is 3 retries.
 * `:logger` a value that implements the `duct.logger/Logger`
   protocol. If not `nil`, the library will log any relevant issues
-  that may prevent tokens from being validated (e.g., inability to get
-  the JWKS URL, getting invalid keys in the JWKS document, etc.)
+  that may prevent tokens from being validated (e.g., inability to
+  retrieve the "well-known openid-configuration" or the signature
+  verification keys from the JWKS URL, getting invalid keys in the
+  JWKS document, etc.)
 
-Examples (using all optional configuration keys with their default values):
+Here are some examples, ranging from the minimal one to the maximal
+one. First of all, the bare minimum configuration, with a single
+valid audience:
 
 ```clojure
 {:dev.gethop.buddy-auth/jwt-oidc
  {:claims {:iss #duct/env ["ISSUER_URL" Str]
            :aud #duct/env ["AUDIENCE" Str]}
+  :well-known-url #duct/env ["WELL_KNOWN_URL" Str]}}
+```
+
+Sames as the previous one, but using multiple valid audiences:
+
+```clojure
+{:dev.gethop.buddy-auth/jwt-oidc
+  {:claims {:iss #duct/env ["ISSUER_URL" Str]
+            :aud [#duct/env ["AUDIENCE_1" Str]
+                  #duct/env ["AUDIENCE_2" Str]]}
+  :well-known-url #duct/env ["WELL_KNOWN_URL" Str]}}
+```
+
+The same example as above, but using all optional configuration keys
+with their default values (with both `:well-known-url` and `:jwks-uri`:
+
+```clojure
+{:dev.gethop.buddy-auth/jwt-oidc
+ {:claims {:iss #duct/env ["ISSUER_URL" Str]
+           :aud [#duct/env ["AUDIENCE_1" Str]
+                 #duct/env ["AUDIENCE_2" Str]]}
   :well-known-url #duct/env ["WELL_KNOWN_URL" Str]
   :pubkeys-expire-in 86400
   :max-cached-tokens 50
@@ -133,6 +170,26 @@ Examples (using all optional configuration keys with their default values):
   :logger #ig/ref :duct/logger}}
 ```
 
+Finally, an example using multiple IdP configurations:
+
+```clojure
+{:dev.gethop.buddy-auth/jwt-oidc
+ [{:claims {:iss #duct/env ["ISSUER_URL" Str]
+            :aud [#duct/env ["AUDIENCE_1" Str]
+                  #duct/env ["AUDIENCE_2" Str]]}
+   :well-known-url #duct/env ["WELL_KNOWN_URL" Str]}
+  {:claims {:iss #duct/env ["ISSUER_URL" Str]
+           :aud #duct/env ["AUDIENCE" Str]}
+   :jwks-uri #duct/env ["JWKS_URI" Str]
+   :pubkeys-expire-in 86400
+   :max-cached-tokens 50
+   :jwks-retrieval-timeout 500
+   :jwks-retrieval-retries 3
+   :logger #ig/ref :duct/logger}]}
+```
+
+### Using the initalized Integrant key
+
 Initializing the key returns an `authfn` function that can be used in
 conjunction with
 [:duct.middleware.buddy/authentication](https://github.com/duct-framework/middleware.buddy).
@@ -140,22 +197,31 @@ Example:
 
 ```clojure
 {:dev.gethop.buddy-auth/jwt-oidc
- {:claims {:iss #duct/env ["ISSUER_URL" Str]
+ [{:claims {:iss #duct/env ["ISSUER_URL" Str]
+            :aud [#duct/env ["AUDIENCE_1" Str]
+                  #duct/env ["AUDIENCE_2" Str]]}
+   :well-known-url #duct/env ["WELL_KNOWN_URL" Str]}
+  {:claims {:iss #duct/env ["ISSUER_URL" Str]
            :aud #duct/env ["AUDIENCE" Str]}
-  :jwks-uri #duct/env ["JWKS_URI" Str]
-  :logger #ig/ref :duct/logger}
+   :jwks-uri #duct/env ["JWKS_URI" Str]
+   :pubkeys-expire-in 86400
+   :max-cached-tokens 50
+   :jwks-retrieval-timeout 500
+   :jwks-retrieval-retries 3
+   :logger #ig/ref :duct/logger}]}
 
  :duct.middleware.buddy/authentication
- {:backend    :token
+ {:backend :token
   :token-name "Bearer"
-  :authfn     #ig/ref :dev.gethop.buddy-auth/jwt-oidc}}
+  :authfn #ig/ref :dev.gethop.buddy-auth/jwt-oidc}}
 ```
 
 The `authfn` function does all the [OpenID Connect ID Token validation
 process](https://openid.net/specs/openid-connect-basic-1_0.html#IDTokenValidation)
 and returns the value of the `sub` claim if the ID Token was
-successfully validated. Otherwise, it returns `nil`. The function
-throws `AssertionError` if any of the following conditions occur:
+successfully validated with the specified claims. Otherwise, it
+returns `nil`. The function throws `AssertionError` if any of the
+following conditions occur:
 
 * `:jwks-uri` is not a `string` or a valid `java.net.URL` value.
 * `:iss` is `nil`

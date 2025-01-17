@@ -5,9 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+- Added support for multiple OpenID Connect Identity Providers.
+
 ## [1.0.3] 2024.06.19
 
-- Add additional debugging details for unknown connection errors.
+- Added additional debugging details for unknown connection errors.
 
 ## [1.0.2] 2024.03.21
 

@@ -589,43 +589,68 @@
                                     :kid jwk-rsa-kid
                                     :alg :rs256}
         logger nil
-        config {:claims {:iss issuer-url
-                         :aud audience}
-                :jwks-uri jwks-uri
-                :logger logger}
+        idp-config {:claims {:iss issuer-url
+                             :aud audience}
+                    :jwks-uri jwks-uri
+                    :logger logger}
         token (create-token default-token-claims default-token-signing-opts)]
     (testing "authfn returns a function"
       (with-redefs [impl/get-url (fn [_ _ _]
                                    (json/write-str {:keys jwk-keys}))]
-        (is (fn? (jwt-oidc/authfn config)))))
+        (is (fn? (jwt-oidc/authfn idp-config)))))
     (testing "Success authentication with valid token"
       (with-redefs [impl/get-url (fn [_ _ _]
                                    (json/write-str {:keys jwk-keys}))]
-        (let [authfn (jwt-oidc/authfn config)]
+        (let [authfn (jwt-oidc/authfn idp-config)]
           (is (= sub (authfn {} token))))))
     (testing "With existig but not expired yet token"
       (with-redefs [impl/get-url (fn [_ _ _]
                                    (json/write-str {:keys jwk-keys}))]
-        (let [authfn (jwt-oidc/authfn (assoc-in config [:claims :now]
+        (let [authfn (jwt-oidc/authfn (assoc-in idp-config [:claims :now]
                                                 (+ (now-in-secs) thirty-mins)))]
           (is (= sub (authfn {} token))))))
     (testing "With expired token"
       (with-redefs [impl/get-url (fn [_ _ _]
                                    (json/write-str {:keys jwk-keys}))]
-        (let [authfn (jwt-oidc/authfn (assoc-in config [:claims :now]
+        (let [authfn (jwt-oidc/authfn (assoc-in idp-config [:claims :now]
                                                 (+ (now-in-secs) one-day)))]
           (is (= nil (authfn {} token))))))
     (testing "With invalid aud claim"
       (is (thrown? ExceptionInfo
-                   (jwt-oidc/authfn (assoc-in config [:claims :aud] nil))))
+                   (jwt-oidc/authfn (assoc-in idp-config [:claims :aud] nil))))
       (is (thrown? ExceptionInfo
-                   (jwt-oidc/authfn (assoc-in config [:claims :aud] []))))
+                   (jwt-oidc/authfn (assoc-in idp-config [:claims :aud] []))))
       (is (thrown? ExceptionInfo
-                   (jwt-oidc/authfn (assoc-in config [:claims :aud] [nil]))))
+                   (jwt-oidc/authfn (assoc-in idp-config [:claims :aud] [nil]))))
       (is (thrown? ExceptionInfo
-                   (jwt-oidc/authfn (assoc-in config [:claims :aud] ["some-aud" nil]))))
+                   (jwt-oidc/authfn (assoc-in idp-config [:claims :aud] ["some-aud" nil]))))
       (is (thrown? ExceptionInfo
-                   (jwt-oidc/authfn (assoc-in config [:claims :aud] [nil "some-aud"])))))))
+                   (jwt-oidc/authfn (assoc-in idp-config [:claims :aud] [nil "some-aud"])))))
+    (testing "With multiple identity providers"
+      (let [other-idp-issuer-url "https://second-idp.invalid"
+            other-idp-audience "second-idp-audience"
+            other-idp-jwks-uri "https://second-idp.invalid/jwks-uri"
+            other-idp-config {:claims {:iss other-idp-issuer-url
+                                       :aud other-idp-audience}
+                              :jwks-uri other-idp-jwks-uri
+                              :logger logger}
+            other-idp-token-claims {:sub sub
+                                    :iss other-idp-issuer-url
+                                    :aud other-idp-audience
+                                    :exp exp}
+            other-idp-token (create-token other-idp-token-claims default-token-signing-opts)
+            invalid-token-1 (create-token (assoc other-idp-token-claims :iss "https://unrecognized-idp.invalid")
+                                          default-token-signing-opts)
+            invalid-token-2 (create-token (assoc other-idp-token-claims :aud "unrecognized-audience")
+                                          default-token-signing-opts)]
+        (with-redefs [impl/get-url (fn [_ _ _]
+                                     (json/write-str {:keys jwk-keys}))]
+          (let [authfn (jwt-oidc/authfn [idp-config other-idp-config])]
+            (is (fn? authfn))
+            (is (= sub (authfn {} token)))
+            (is (= sub (authfn {} other-idp-token)))
+            (is (nil? (authfn {} invalid-token-1)))
+            (is (nil? (authfn {} invalid-token-2)))))))))
 
 (def ^:private cognito-user-credentials
   {:username (System/getenv "COGNITO_TESTS_USERNAME")

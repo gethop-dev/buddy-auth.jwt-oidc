@@ -34,29 +34,28 @@
 (s/def ::well-known-url-retrieval-retries ::specs/retries)
 (s/def ::pubkeys-expire-in pos-int?)
 (s/def ::max-cached-tokens pos-int?)
-(s/def ::authfn-options (s/and (s/keys :req-un [::specs/claims
-                                                (or ::specs/jwks-uri
-                                                    ::specs/well-known-url)]
-                                       :opt-un [::pubkeys-expire-in
-                                                ::max-cached-tokens
-                                                ::specs/logger
-                                                ::jwks-retrieval-timeout
-                                                ::jwks-retrieval-retries
-                                                ::well-known-url-retrieval-timeout
-                                                ::well-known-url-retrieval-retries])
-                               ;; One, and only one, of the two should be set.
-                               (fn [authfn-options]
-                                 (= 1 (count (select-keys authfn-options [:jwks-uri
-                                                                          :well-known-url]))))))
+(s/def ::idp-config (s/and (s/keys :req-un [::specs/claims
+                                            (or ::specs/jwks-uri
+                                                ::specs/well-known-url)]
+                                   :opt-un [::pubkeys-expire-in
+                                            ::max-cached-tokens
+                                            ::specs/logger
+                                            ::jwks-retrieval-timeout
+                                            ::jwks-retrieval-retries
+                                            ::well-known-url-retrieval-timeout
+                                            ::well-known-url-retrieval-retries])
+                           ;; One, and only one, of the two should be set.
+                           (fn [authfn-options]
+                             (= 1 (count (select-keys authfn-options [:jwks-uri
+                                                                      :well-known-url]))))))
 
-(s/def ::authfn-args (s/cat :options ::authfn-options))
-(s/def ::authfn-ret fn?)
-(s/fdef authfn
-  :args ::authfn-args
-  :ret ::authfn-ret)
+(s/def ::idp-authfn-args (s/cat :config ::idp-config))
+(s/def ::idp-authfn-ret fn?)
+(s/fdef idp-authfn
+  :args ::idp-authfn-args
+  :ret ::idp-authfn-ret)
 
-(defn authfn
-  "buddy-auth authentication function"
+(defn- idp-authfn
   [{:keys [claims
            jwks-uri
            well-known-url
@@ -73,8 +72,8 @@
          jwks-retrieval-retries default-jwks-retrieval-retries
          well-know-url-retrieval-timeout default-jwks-retrieval-timeout
          well-know-url-retrieval-retries default-jwks-retrieval-retries}
-    :as options}]
-  {:pre [(s/valid? ::authfn-options options)]}
+    :as idp-config}]
+  {:pre [(s/valid? ::idp-config idp-config)]}
   (let [pubkey-cache (impl/create-pubkey-cache pubkeys-expire-in)
         token-cache (impl/create-token-cache max-cached-tokens)
         context (cond-> {:claims claims
@@ -93,6 +92,33 @@
                                              :retries well-know-url-retrieval-retries}))]
     (fn [_req token]
       (impl/validate-token context token))))
+
+(s/def ::idp-configs (s/or :single-idp ::idp-config
+                           :multi-idp (s/coll-of ::idp-config
+                                                 :kind vector?
+                                                 :min-count 1)))
+
+(s/def ::authfn-args (s/cat :single-or-multi-idp-config ::idp-configs))
+(s/def ::authfn-ret fn?)
+(s/fdef authfn
+  :args ::authfn-args
+  :ret ::authfn-ret)
+
+(defn authfn
+  "buddy-auth authentication function"
+  [idp-configs]
+  {:pre [(s/valid? ::idp-configs idp-configs)]}
+  (if-not (vector? idp-configs)
+    (idp-authfn idp-configs)
+    (let [idp-fns (mapv idp-authfn idp-configs)]
+      (fn [req token]
+        (reduce (fn [_ idp-fn]
+                  (let [identity (idp-fn req token)]
+                    (if identity
+                      (reduced identity)
+                      nil)))
+                nil
+                idp-fns)))))
 
 (defmethod ig/init-key :dev.gethop.buddy-auth/jwt-oidc [_ options]
   (authfn options))
