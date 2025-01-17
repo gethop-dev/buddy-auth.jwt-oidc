@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [UNRELEASED]
 
 - Added support for multiple OpenID Connect Identity Providers.
+- Updated dependencies.
 
 ## [1.0.3] 2024.06.19
 

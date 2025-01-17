@@ -4,15 +4,15 @@
   :min-lein-version "2.9.8"
   :license {:name "Mozilla Public Licence 2.0"
             :url "https://www.mozilla.org/en-US/MPL/2.0/"}
-  :dependencies [[org.clojure/clojure "1.10.0"]
-                 [buddy/buddy-core "1.11.423"]
-                 [buddy/buddy-sign "3.5.351"]
-                 [diehard "0.11.10"]
+  :dependencies [[org.clojure/clojure "1.11.4"]
+                 [buddy/buddy-core  "1.12.0-430"]
+                 [buddy/buddy-sign "3.6.1-359"]
+                 [diehard "0.11.12"]
                  [duct/logger "0.3.0"]
-                 [http-kit "2.7.0"]
+                 [http-kit "2.8.0"]
                  [integrant "0.8.0"]
-                 [org.clojure/core.cache "1.0.225"]
-                 [org.clojure/data.json "2.4.0"]
+                 [org.clojure/core.cache "1.1.234"]
+                 [org.clojure/data.json "2.5.1"]
                  [coop.magnet/ttlcache "0.2.0"]]
   :deploy-repositories [["snapshots" {:url "https://clojars.org/repo"
                                       :username :env/CLOJARS_USERNAME
@@ -38,6 +38,6 @@
                                 [com.amazonaws/aws-java-sdk-cognitoidp "1.11.586"]
                                 [com.amazonaws/aws-java-sdk-core "1.11.586"]
                                 [com.amazonaws/aws-java-sdk-s3 "1.11.586"]]
-                 :plugins [[jonase/eastwood "1.4.2"]
+                 :plugins [[jonase/eastwood "1.4.3"]
                            [lein-cljfmt "0.9.2"]]
                  :jvm-opts ["--add-opens" "java.base/java.lang=ALL-UNNAMED"]}})
