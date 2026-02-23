@@ -1,0 +1,34 @@
+services:
+  app:
+    image: local/jwt-oidc/dev:latest
+    build:
+      context: .
+      target: "dev"
+    command:
+      - bash
+      - -c
+      - 'env JAVA_OPTS="-Djdk.attach.allowAttachSelf -XshowSettings:vm -XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0 -server" lein repl :headless'
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_DEFAULT_REGION
+      - COGNITO_TESTS_AUDIENCE
+      - COGNITO_TESTS_ISSUER_URL
+      - COGNITO_TESTS_JWKS_URI
+      - COGNITO_TESTS_PASSWORD
+      - COGNITO_TESTS_SUB
+      - COGNITO_TESTS_USERNAME
+      - COGNITO_TESTS_USER_POOL_CLIENT_ID
+    ports:
+      - mode: ingress
+        target: 4002
+        published: 4002
+        protocol: tcp
+    volumes:
+      - ".:/app"
+      - "~/.m2:/root/.m2"
+      - "~/.m2:/home/hop/.m2"
+    deploy:
+      resources:
+        limits:
+          memory: 1024m

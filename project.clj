@@ -30,7 +30,7 @@
   :profiles
   {:dev [:project/dev :profiles/dev]
    :repl {:repl-options {:host "0.0.0.0"
-                         :port 4001}}
+                         :port 4002}}
    :profiles/dev {}
    :project/dev {:dependencies [[amazonica/amazonica "0.3.168"
                                  :exclusions [com.amazonaws/aws-java-sdk

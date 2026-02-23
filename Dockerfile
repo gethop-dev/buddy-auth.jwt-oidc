@@ -1,0 +1,70 @@
+# base =========================================================================
+FROM debian:trixie-slim AS base
+
+# The AWS SDK library makes some illegal reflections code access. According
+# to the devs it won't be fixed because they are working in the v2 of the
+# SDK [1]. Previous JVM version were just generating a warning, but since we
+# updated to JDK 17 the JVM blocks those illegal accesses by default. That
+# generates unexpected behaviour and exceptions in the Amazonica library.
+# By using this flag we tell the JVM not to block them.
+#
+# As far as we know the flag doesn't have any security implications. The access
+# is blocked by default because mantainability reasons[2]. The libraries shouldn't
+# be calling to low-level Java code because is not part of the public API and
+# is subject to change.
+#
+# Note that this is just for production use. For development we added the same
+# flag to the project.clj.
+# [1] https://github.com/mcohen01/amazonica/issues/323#issuecomment-461392822
+# [2] http://openjdk.java.net/jeps/261
+# [3] https://github.com/aws/aws-sdk-java/issues/2288#issuecomment-856995652
+ENV JVM_OPTS="-Djava.awt.headless=true --add-opens java.base/java.lang=ALL-UNNAMED"
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+RUN set -ex; \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libsodium23=1.0.18-1+b2 \
+    libfreetype6=2.13.3+dfsg-1 \
+    fontconfig=2.15.0-2.3 \
+    poppler-utils=25.03.0-5 \
+    imagemagick=8:7.1.1.43+dfsg1-1+deb13u2 && \
+    apt-get -y autoremove && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir --parents "${JAVA_HOME}/lib" && \
+    printf 'version=1\nsequence.allfonts=default\n' > "${JAVA_HOME}/lib/fontconfig.properties"
+
+# dev ==========================================================================
+FROM base AS dev
+
+# hadolint ignore=DL3022
+COPY --from=eclipse-temurin:21-jdk $JAVA_HOME $JAVA_HOME
+
+ENV CLJ_KONDO_VERSION=2025.09.22
+ENV BINARIES_INSTALL_PATH=/usr/local/bin
+
+RUN set -eux; \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    leiningen=2.10.0-5 \
+    ca-certificates=20250419 \
+    runit=2.2.0-3 \
+    curl=8.14.1-2 \
+    unzip=6.0-29 && \
+    useradd --home-dir /home/hop --create-home --shell /bin/bash --user-group hop && \
+    curl -sL -o /tmp/install-clj-kondo "https://raw.githubusercontent.com/clj-kondo/clj-kondo/master/script/install-clj-kondo" && \
+    chmod 755 /tmp/install-clj-kondo && \
+    ./tmp/install-clj-kondo --version "${CLJ_KONDO_VERSION}" --dir "${BINARIES_INSTALL_PATH}" && \
+    apt-get -y purge curl unzip && \
+    apt-get -y autoremove && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY docker/run-as-user.sh "${BINARIES_INSTALL_PATH}"
+
+WORKDIR /app
+
+ENTRYPOINT ["run-as-user.sh"]
+
