@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [UNRELEASED]
 ### Changed
 - Upgrade github actions execution environment and tooling versions
+- Upgraded dependencies
 
 ## [1.0.4] 2025.01.17
 
