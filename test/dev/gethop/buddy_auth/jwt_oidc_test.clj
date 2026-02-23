@@ -460,14 +460,14 @@
               tokens-initial (mapv #(get-in @token-cache [% :sub]) tokens)
               count-after-initial (count @token-cache)
 
-              ;; After wating 2500 ms
+              ;; After waiting 2500 ms
               _ (Thread/sleep 2500)
               count-before-2500 (count @token-cache)
               _ (mapv #(impl/validate-token context %) tokens)
               tokens-2500 (mapv #(get-in @token-cache [% :sub]) tokens)
               count-after-2500 (count @token-cache)
 
-              ;; After wating 5000 ms
+              ;; After waiting 5000 ms
               _ (Thread/sleep 2000)
               count-before-5000 (count @token-cache)
               _ (mapv #(impl/validate-token context %) tokens)
@@ -550,7 +550,7 @@
                    (cache/has? @token-cache token))))))
     (swap! pubkey-cache empty)
     (swap! token-cache empty)
-    (testing "Fail to validate a token for another audience, result is cache"
+    (testing "Fail to validate a token for another audience, result is cached"
       (with-redefs [impl/get-url (fn [_ _ _]
                                    (json/write-str {:keys jwk-keys}))]
         (let [token (create-token (assoc default-token-claims
