@@ -77,8 +77,11 @@
   [max-cached-tokens]
   (atom
    (-> {}
-       (ttlcache/per-item-ttl-cache-factory :ttl-getter (fn [_ v] (:ttl v)))
-       (cache/lru-cache-factory :threshold max-cached-tokens))))
+       (cache/lru-cache-factory :threshold max-cached-tokens)
+       (ttlcache/per-item-ttl-cache-factory :ttl-getter (fn [_ v]
+                                                          (if (delay? v)
+                                                            (:ttl @v)
+                                                            (:ttl v)))))))
 
 (defn- fallback [^Throwable e logger url]
   (let [details (condp instance? e

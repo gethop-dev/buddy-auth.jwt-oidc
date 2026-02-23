@@ -10,6 +10,7 @@
             [buddy.core.nonce :as nonce]
             [buddy.sign.jwt :as jwt]
             [clojure.core.cache :as cache]
+            [clojure.core.cache.wrapped :as cw]
             [clojure.data.json :as json]
             [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
@@ -457,21 +458,21 @@
               ;; Initial validation
               count-before-initial (count @token-cache)
               _ (mapv #(impl/validate-token context %) tokens)
-              tokens-initial (mapv #(get-in @token-cache [% :sub]) tokens)
+              tokens-initial (mapv #(-> (cw/lookup token-cache %) :sub) tokens)
               count-after-initial (count @token-cache)
 
               ;; After waiting 2500 ms
               _ (Thread/sleep 2500)
               count-before-2500 (count @token-cache)
               _ (mapv #(impl/validate-token context %) tokens)
-              tokens-2500 (mapv #(get-in @token-cache [% :sub]) tokens)
+              tokens-2500 (mapv #(-> (cw/lookup token-cache %) :sub) tokens)
               count-after-2500 (count @token-cache)
 
               ;; After waiting 5000 ms
               _ (Thread/sleep 2000)
               count-before-5000 (count @token-cache)
               _ (mapv #(impl/validate-token context %) tokens)
-              tokens-5000 (mapv #(get-in @token-cache [% :sub]) tokens)
+              tokens-5000 (mapv #(-> (cw/lookup token-cache %) :sub) tokens)
               count-after-5000 (count @token-cache)]
           ;; Initial validation. No token should have expired, and the token with the
           ;; largest TTL should have been expunged from the cache by the other tokens. And
