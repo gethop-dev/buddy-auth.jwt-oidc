@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
+
+## [1.0.5] 2026.02.23
 ### Changed
 - Upgrade github actions execution environment and tooling versions
 - Upgraded dependencies
@@ -151,7 +153,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v1.0.4...HEAD
+[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.5
 [1.0.4]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.4
 [1.0.3]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.3
 [1.0.2]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.2
