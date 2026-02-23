@@ -33,4 +33,3 @@
 
 (s/def ::ttl pos-int?)
 (s/def ::has-ttl (s/keys :req-un [::ttl]))
-
