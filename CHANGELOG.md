@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+### Changed
+- Upgraded org.clojure/core.cache dependency (includes cache-stampede fixes for CCACHE-65)
+
 ## [1.0.5] 2026.02.23
 ### Changed
 - Upgrade github actions execution environment and tooling versions

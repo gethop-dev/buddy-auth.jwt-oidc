@@ -11,7 +11,7 @@
                  [duct/logger "0.3.0"]
                  [http-kit/http-kit "2.8.1"]
                  [integrant/integrant "0.8.0"]
-                 [org.clojure/core.cache "1.2.0"]
+                 [org.clojure/core.cache "1.2.263"]
                  [org.clojure/data.json "2.5.2"]
                  [coop.magnet/ttlcache "0.2.2"]]
   :deploy-repositories [["snapshots" {:url "https://clojars.org/repo"
