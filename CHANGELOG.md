@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED]
 
+## [1.0.6] 2026.03.01
 ### Changed
 - Upgraded org.clojure/core.cache dependency (includes cache-stampede fixes for CCACHE-65)
 
@@ -156,7 +157,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.3.0] - 2019-01-28
 - Initial commit (previous versions were not publicly released)
 
-[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v1.0.5...HEAD
+[UNRELEASED]:  https://github.com/gethop-dev/buddy-auth.jwt-oidc/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.6
 [1.0.5]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.5
 [1.0.4]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.4
 [1.0.3]: https://github.com/gethop-dev/buddy-auth.jwt-oidc/releases/tag/v1.0.3
