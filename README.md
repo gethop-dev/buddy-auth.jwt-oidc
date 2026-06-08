@@ -57,7 +57,7 @@ have to provide an Identity Provider (IdP) configuration map, or a
 non-empty vector of such IdP configuration maps.
 
 The spec for the IdP configuration map is available under the
-`:dev.gethop.buddy-auth.jwt-oidc/ip-config` key in the global spec
+`:dev.gethop.buddy-auth.jwt-oidc/idp-config` key in the global spec
 registry. That spec is used in a pre-condition assertion for the
 argument, and a `clojure.lang.ExceptionInfo` is thrown if the
 configuration map doesn't conform to the spec.
